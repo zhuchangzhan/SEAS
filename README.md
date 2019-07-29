@@ -1,2 +1,2 @@
 # SEAS
-Simulated Exoplanet Atmosphere Spectra
+Simulator for Exoplanet Atmosphere Spectra
