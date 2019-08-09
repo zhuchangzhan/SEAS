@@ -1,0 +1,167 @@
+
+SEAS Code Architecture (v0.8)
+****************************************
+
+
+Author: Zhuchang Zhan (MIT) zzhan@mit.edu
+LICENSE: MIT
+
+
+****************************************
+0. Mission
+
+The Purpose of Simulated Exoplanet Atmosphere Spectra (SEAS) Generator is to provide user with a simple python tool for generating exoplanet atmosphere spectra and have the ability to hack/change the code for the research needed. The base model of the code is made using the first principles of astrophysics and atmosphere chemistry. The code is intended to be light with the goal for benchmark/validation before a more complex model is built.
+
+SEAS only generates spectra from input atmosphere conditions. It does not calculate photochemistry or atmosphere processes. Future wrapper using both SEAS and atmosphere models will be able to conduct self-consistent photon-climate-chemistry atmosphere spectra simulations.
+
+
+****************************************
+1. Main Directory
+
+----> Private Directory (Users can setup their own in this manner)
+/A.Progress			# Internal development executable and research tasks that is not public. 
+				# Updates based on date. Mostly for testing. Common executable will be ported to /bin
+				# This usually serves as a testing folder for new tool and debugging
+				# Email author for details
+/B.Old_Progress		# Old code with no incentive to touch. Not public.
+
+
+---> Public Directory
+/bin	 			# Code excutables
+/documentation		# Code documentation and other schematic/architectural documentation
+/example			# Lite version of /bin
+/input				# Simulation inputs
+/resource			# Resource for Research/Presentation/PR
+/publication  		# Publication using SEAS
+/SEAS_Main			# Main src for SEAS
+/SEAS_Util			# Utility src for SEAS
+/SEAS_Test			# Testing src for SEAS
+
+****************************************
+2. Code Architecture
+
+
+/bin 				# executables using SEAS for specific tasks
+	/data_download	# Build the input folder for SEAS
+	/cross_section_grid  # Build the SEAS cross section grid
+	/machine_learning	# How to setup SEAS for machine learning applications
+
+/example			# More documented and comprehensive example executables using SEAS for research projects. 
+	/atmosphere_spectra_simulation_template/ # simulation template for all simulations
+		user_input.cfg
+	/simplest_transmission_spectra/
+	/simplest_emission_spectra/
+	/simplest_reflection_spectra/
+	
+/SEAS_Main			# Main code of SEAS for generating exoplanet spectra
+	/Atmosphere		# code related to loading and calculating atmosphere information
+		/Atmosphere_Prototype.py		# Load atmosphere prototype
+		/Mixing_Ratio.py			# Load/Generate mixing ratio profile
+		/Temperature_Pressure.py		# Load/Generate temperature pressure profile
+		/Molecular_Absorption.py		# Load molecular absorption
+		/Rayleigh_Scattering.py		# Load Rayleigh scattering
+		/Mie_Scattering.py			# Load Mie scattering by cloud, haze, aerosol
+		/Collision_Induced_Absorption.py	# Load collision induced absorption
+	/Physics/		# Physical calculations
+		/Blackbody.py
+		
+	/Simulation/		
+		/Planet Model
+		/Transmission_Spectroscopy.py
+		/Emission_Spectroscopy.py
+		/Reflection_Spectroscopy.py
+	/Observation		# constraint the spectra to certain observation
+		Noise.py	# calculate instrument noise
+		Instrument.py	# set instrument parameters (telescope)
+		Filter.py	# load specific filters (telescope, Earth)
+	
+/SEAS_Util			# Utilities and Auxiliary functions for pre-processing and post-processing
+	/Common
+		/constants.py
+		/data_loader.py
+		/data_saver.py
+		/interpolation.py
+		/configurable.py
+		/cachable.py
+		/database_management.py
+	
+	/Statistics
+		/Error.py	# calculate error bar 
+		/Analysis	# Statistical analysis tools
+
+	/cross_section
+		/cross_section_generator.py
+		/hapi.py
+	
+	/data_downloader
+		/Web_Scraper.py
+		/NIST_Spectra_Downloader.py
+		/PNNL_Spectra_Downloader.py
+		/HITRAN_Line_List_Downloader.py
+		/HITRAN_Cross_Section_Downloader.py
+		/Exomol_Cross_Section_Downloader.py
+	
+	/user_friendly
+		/GUI.py
+		/Voice.py
+
+/SEAS_Test			# For making sure the code is maintained and functional. Not for testing new code or debug
+	/Benchmark		# Testing the speed of certain code
+	/Unittest		# Testing if code will execute
+
+****************************************
+3. Model Inputs (/input)
+
+The inputs for the model includes initial inputs and generated inputs (intermediate results) such as cross section databases
+
+/atmosphere_data/		# Information about atmosphere scenarios
+	/MR_Profile
+	/TP_Profile
+	/Atmosphere_Prototype
+/cross_section/
+	/ExoMol/
+	/HITRAN/
+	/Generated/
+/line_list/
+	/Atomic_Line_List/
+	/HITRAN_Line_List/
+	/HITRAN_CIA/
+/Spectra/
+	/NIST/
+	/PNNL/
+
+	
+
+
+****************************************
+4. Code Documentation and Resources
+
+/documentation
+	/Code_Architecture.txt (This file)
+	/Code_Flowchart.pdf (Generated from Lucid Chart)
+	/Deprecated   	# Old Text for record purpose
+	/TODO 			# Detailed TODO list directory. An alternative location for Issues, may change in future 
+		/Completed
+		/Dropped
+/resource
+	/Presentation_Figures	# figures that can be used for presentations
+
+
+/publication	 		# Generating figures and results for published Papers for reproducibility
+	/isoprene_Zhan19/	# Zhuchang Zhan 2019 paper on Isoprene
+	/3D_CCM_Chen19/	# Howard Chen 2019 paper on using 3D climate, chemistry model
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

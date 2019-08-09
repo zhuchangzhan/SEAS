@@ -1,0 +1,7 @@
+Task: Write new SEAS Code Architecture
+
+Clean up old documentation for SEAS and collect on how the architecture of SEAS should be.
+
+Items needed:
+1. Detail what each directory is for and what will be in those folders
+2. 

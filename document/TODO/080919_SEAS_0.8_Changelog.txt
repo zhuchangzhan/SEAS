@@ -1,0 +1,3 @@
+Task: Consistently update SEAS 0.8 Changelog
+
+Update changelog, consistently think about what documentation needs to go where

@@ -1,0 +1,11 @@
+README:
+
+
+Don't clog this folder with task lists 
+
+Filename format: 
+MMDDYY_Task_MMDDYY 
+The first date is start date
+The second date is completion date
+Recurring tasks does not have completion date
+Resurfaced tasks should be new tasks

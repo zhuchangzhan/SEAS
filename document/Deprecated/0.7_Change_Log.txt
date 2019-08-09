@@ -1,0 +1,278 @@
+This is the change log for SEAS 0.7
+
+
+Code Users should only touch what's in the /bin
+
+
+Here is a list of new features that's planned for 0.7 version of the code
+
+
+
+
+- Add 
+
+    1. A GUI wrapper for simulation selection
+        a. need list of selections
+    2. Stacking Spectra by layer and by molecule
+    3. make importable (ask chelsea to help)
+    4. proper noise model
+    5. Implemente Kevin Heng's Suggestions
+        TP scaling and cross section generated on the grid.
+    6. cross section database generation code
+    7. mixing ratio file generator
+
+- Modify
+
+    1. Code directories to be compatible for testing, auxiliary and release
+    2. molecule selection to allow "main" (HITRAN) molecules as biosignatures. ref to A.2
+    3. Rework of NIST spectra download
+    4. Rework of HITRAN line list download 
+    5. Rework the json into cfg
+    6. Fixed errors in the code:
+    	i.interpolation pressure gone backwards
+
+
+	need to add a dir checker for file saving
+	remove N2 cross section? or simple replacement with empty cross section to save time....
+	need to check if database exists
+	need to check cross section save to see if match with 
+		naming for generated cross section save?
+	need to rework the generation of example_Db... and associated data intakes	
+		perhaps a db checker to make sure each databse is smaller than 100mb?
+	
+	need a db_log output directory parameter for dbm
+	need a "clean" option to remove already downloaded files
+
+- Remove
+
+
+
+
+
+
+
+
+
+Code Architecture:
+
+
+/bin									# active code development of executables for different projects
+
+	/dev								# current working project and implementation of new features
+	/test								# code testing cases
+
+/bin_stable								# stable/working simulation executables.
+
+	/deprecated							# outdated projects, reference only. Most likely not execute and produce errors
+	/example							# example
+	/auxillary
+		cross_sec_db_generator.py 
+		display_spectra.py
+	/data_download	
+	/machine_learning		
+	
+
+
+
+
+/document								# code documentation and flowcharts
+	/Flowchart.pdf
+	/0.7_Change_Log.txt
+	
+/input									# user inputs and such
+
+	/atmosphere_data					# generated results that could be useful for other part of the simulation 
+	    /Mixing_Ratio
+	    /TP_Profile
+	    /Atmosphere_Prototype						
+	
+	/absorption_data					# storage for molecular line list, cross section and transmission spectra
+		/Atomic_Line_List
+		/Exomol_Cross_Section
+		/HITRAN_CIA
+		/HITRAN_Cross_Section
+		/HITRAN_Line_List
+		/NIST_Spectra
+		/PNNL_Spectra
+		
+	/database							# various database used in the simulation
+		/Broad_Band
+		/Simulation_Band
+		/Narrow_Band
+		/Random_Cross_Section
+		/Molecule_Info
+
+	/Instrument_Filters					# telescope/instrument filter functions
+	
+	/Telescope_Specs
+
+/output									# plots, data and results from simulations
+
+	/Simulation_Result
+
+/SEAS_Main								# src code and "common modules"
+	/atmosphere_geometry				# geometric model of the atmosphere
+		/simple_model.py				# the default simplistic onion shape geometry
+	
+    /atmosphere_property				# various atmospheric physics and characteristics
+    	/molecule.py					# why is this here again? what is it for?
+    	/mixing_ratio.py
+    	/temperature_pressure_profile.py
+    
+    /effects
+    	/noise.py
+    	/error.py
+    	/effect.py
+		/atmosphere_effects				# various methods that remove light from the transmission 	
+			/main_molecule.py
+			/biosig_molecule.py
+			/filler_molecule.py
+			/rayleigh_scattering.py
+			/collision_induced_absorption.py
+			/cloud.py
+			/haze.py    
+			
+	    /observation_effects			# effects due to observer
+	    	/observation_noise.py		# shot noise, photon noise, etc.
+	    	/observation_window_telescope.py		
+	    	/observation_window_earth.py# do we really need two similar modules? treat earth as a "telescope"?
+	    	/filter.py
+	    	/background.py    
+    
+    /simulation							# what do you want to simulate using the SEAS module?
+    	/telescope.py
+    	/atmosphere_geometry_model.py
+		/cross_section.py
+    	/transmission_spectra.py
+    	/transit_signal.py
+    	/tube_spectra.py
+    	
+    /observation.py
+    	
+/SEAS_Aux								# Auxillary functions that doesn't go into the main spectroscopic/observational simulation
+	/atmosphere_processes
+	    /atmosphere_biochemistry.py
+	    /atmosphere_chemistry.py
+		/mixing_ratio_generator.py
+		/temperature_pressure_profile_generator.py
+		
+	/cross_section
+		/cross_section_generator.py
+		/hapi.py
+	
+	/data_downloader
+		/web_tools.py
+		/web_scraper.py
+		/hitran_line_list_downloader.py
+		/hitran_cross_sec_downloader.py
+		/Exomol_cross_sec_downloader.py
+	
+	/user_input_toggle
+		/GUI.py
+	
+	/__init__.py
+
+
+/SEAS_ML									# machine learning code using SEAS
+	/simple_learning
+
+/SEAS_Utils
+	/constants.py
+	/data_loader.py
+	/data_saver.py
+	/interpolation.py
+	/configurable.py
+	/cachable.py
+	/database_management.py
+	/unit_test.py	
+
+
+
+Anticipated Change and Some Reasoning:
+
+Code Goal
+	This code aims to become "The" exoplanet atmosphere observation simulator
+
+Code Framework need rework
+	The current framework is very linear and not task specific
+	A rework of the framework is anticipated so that we can run
+	multiple different simulation from different teams possible.
+	Also, code should be made more robust so that "modding" of
+	the code is more trivial.
+	
+	Update 0.7 should be the "it" for code framework that can hopefully
+	last a couple of more updates before a need to change it. 
+	Therefore it is crucial to get it "Right"
+
+	The code should also anticipate future "Emission" and "Reflection"
+	implementation
+
+
+Rework the user input
+	The current input uses .json format
+	Despite its usefulness in data formating and loading
+	It has a significant draw back of not being able to add comments easily
+	Therefore will be changed to .cfg format similar to the tsig project. 
+
+Rework the entire code running/working pattern
+	Now that each code will be simultaneously used by multiple tasks, it's no
+	longer feasible to run testing code and executables under 
+	if __name__ == "__main__": 
+	which should only be for testing of the individual module
+	now we put all the executables under /bin and all the source code under
+		/SEAS (main spectral simulation) or
+		/SEAS_Aux (code to create useful data used in the simulation).
+
+Rework how biosignatures are added to the code
+	Added biosignature influence to the mixing ratio, scale height
+	Added main molecules as biosignature molecules
+	Added molecular weight to NIST molecules
+		
+Rework the noise and error implementation for more robust additions
+	noise has its own separate class
+	how to implement error is still TBD
+
+Rework all the databases
+	We will now have multiple cross section databases
+	cross section database generation code released
+	an example database is provided with a handful of molecules to try out
+
+Need to create a README example for the code to let users download/calculate their own inputs
+
+Rework bin file nomenclature
+
+		
+Things reserved for 0.8 to handle
+
+	1. user input config files need rework
+		The current system keeps all configs on the same file which can get very big
+		ideally we want to break this down so that it's more flexable to toggle and
+		not repeat many of the same thing.
+	
+	2. Take a detail look at astrophysical properties and simulating planets with different 
+		surface pressure.
+	
+	3. Realistic simulation taken telescope and pointing into consideration for error bar estimate
+	
+	4. For Main molecules, perhaps we should care about isotopes
+	
+	5. Rework Cross section generation... need to look at temperature/pressure scaling. 
+		rework the line_list_to_cross_Section_calculation. it accuracy always seems ... unsure
+	
+	6. convert all classes to take configurable objects instead of taking in a bunch of parameters
+		rework the data intake for dbm as well
+	
+	7. a better "user" system. if time permit, rename function names to python nomeclature
+	
+	8. redo dbm for 0.7 style. also make up for the needed functionalities and remove redunancies.
+		put "method" and "source together, may help reduce unnecessary space
+		also crop the nu and coef 
+
+	9. think about how to handle planets with different surface pressure
+	
+	10. add exceptions to cases that bound to fail the code
+
+Things reserved for 0.9 to handle
+	1. add simple testing cases?
+	
+	
