@@ -27,12 +27,13 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 
 
 ---> Public Directory
-/bin	 			# Code excutables
-/documentation		# Code documentation and other schematic/architectural documentation
+/bin	 			# Code executables
+/config				# Default configuration files. Each project will have a separate config that modifies this
+/documentation			# Code documentation and other schematic/architectural documentation
 /example			# Lite version of /bin
 /input				# Simulation inputs
 /resource			# Resource for Research/Presentation/PR
-/publication  		# Publication using SEAS
+/publication  			# Publication using SEAS
 /SEAS_Main			# Main src for SEAS
 /SEAS_Util			# Utility src for SEAS
 /SEAS_Test			# Testing src for SEAS
@@ -42,8 +43,8 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 
 
 /bin 				# executables using SEAS for specific tasks
-	/data_download	# Build the input folder for SEAS
-	/cross_section_grid  # Build the SEAS cross section grid
+	/data_download		# Build the input folder for SEAS
+	/cross_section_grid  	# Build the SEAS cross section grid
 	/machine_learning	# How to setup SEAS for machine learning applications
 
 /example			# More documented and comprehensive example executables using SEAS for research projects. 

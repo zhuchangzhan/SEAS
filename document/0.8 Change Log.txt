@@ -1,0 +1,28 @@
+SEAS 0.8 Change Log
+
+****************************************
+
+
+Author: Zhuchang Zhan (MIT) zzhan@mit.edu
+LICENSE: MIT
+
+
+****************************************
+
+
+SEAS 0.8 is a complete overhaul of SEAS 0.7, everything is changed.
+Here is a documentation of the major changes with SEAS 0.8 and the rationale behind some of the changes
+
+
+
+****************************************
+
+1. Removed Database:
+	a. Generally hard to debug/spin-off using databases. 
+	b. Sharp re/learning curve for using database for cross sections
+	c. May reinitiate for speed issues. Will reevaluate this issue when benchmarking
+
+2. Configuration Files:
+	a. Break down configuration files into multiple files, each controlling specific parts of the code. 
+	b. Added location for all configuration files, used as default
+	c. Within each project, there will be a project specific configuration files that overwrites the default
