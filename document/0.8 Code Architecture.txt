@@ -31,9 +31,9 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 /config				# Default configuration files. Each project will have a separate config that modifies this
 /documentation			# Code documentation and other schematic/architectural documentation
 /example			# Lite version of /bin
-/input				# Simulation inputs
-/resource			# Resource for Research/Presentation/PR
-/publication  			# Publication using SEAS
+/publication			# Publications using SEAS
+/resources			# Resource for Research/Presentation/PR
+/SEAS_Input			# Simulation inputs
 /SEAS_Main			# Main src for SEAS
 /SEAS_Util			# Utility src for SEAS
 /SEAS_Test			# Testing src for SEAS
@@ -111,26 +111,26 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 	/Unittest		# Testing if code will execute
 
 ****************************************
-3. Model Inputs (/input)
+3. Model Inputs (/Input)
 
 The inputs for the model includes initial inputs and generated inputs (intermediate results) such as cross section databases
 
-/atmosphere_data/		# Information about atmosphere scenarios
+/Atmosphere_Data/		# Information about atmosphere scenarios
 	/MR_Profile
 	/TP_Profile
 	/Atmosphere_Prototype
-/cross_section/
+/Cross_Section/
 	/ExoMol/
 	/HITRAN/
 	/Generated/
-/line_list/
+/Line_List/
 	/Atomic_Line_List/
 	/HITRAN_Line_List/
 	/HITRAN_CIA/
 /Spectra/
 	/NIST/
 	/PNNL/
-
+/Stellar/			# Stellar Spectra. SEAS does not model stellar spectra. Here are samples
 	
 
 
@@ -144,15 +144,14 @@ The inputs for the model includes initial inputs and generated inputs (intermedi
 	/TODO 			# Detailed TODO list directory. An alternative location for Issues, may change in future 
 		/Completed
 		/Dropped
-/resource
-	/Presentation_Figures	# figures that can be used for presentations
-
 
 /publication	 		# Generating figures and results for published Papers for reproducibility
 	/isoprene_Zhan19/	# Zhuchang Zhan 2019 paper on Isoprene
 	/3D_CCM_Chen19/	# Howard Chen 2019 paper on using 3D climate, chemistry model
 
 
+/resource
+	/Presentation_Figures	# figures that can be used for presentations
 
 
 

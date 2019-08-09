@@ -1,37 +1,21 @@
-SEAS 0.8 Changelog
+SEAS 0.8 Design Decision (thoughts and items not yet migrated to the Change log)
+
+****************************************
+
+
+Author: Zhuchang Zhan (MIT) zzhan@mit.edu
+LICENSE: MIT
+
+
+****************************************
 
 
 Ideologies:
 1. Project oriented.
-
-
-
-Proper documentation and code on how to build the SEAS input database
-
-
-
-Added Example Folder, which includes code templates and project templates
-
-
-SEAS is a versatile simulation tool. Each sub folder in example represent an project prototype that uses SEAS in different ways.
-
-Configuration Files:
-	a unique configuration files should be attached to each project.
-
-
-Modeling and data analysis are both important aspects that needs to be addressed
-
-Project based executables. 
-
-Cross sections grid:
-Cross section grid should be generated for each molecule and saved individually,
-Eliminating the need to regenerate it every time for every simulation scenario.
-
-
-
-
-
-
+2. All gases are treated equally as bio/main
+3. Expanded BiosigSEAS to be a more generalized SEAS so that it can be used for retireval
+	a. Broader Wavelength coverage ? 
+	b. Broader Temperature coverage (multiple cross section grids)
 
 Code Framework need rework
 	The current framework is very linear and not task specific
@@ -40,202 +24,68 @@ Code Framework need rework
 	Also, code should be made more robust so that "modding" of
 	the code is more trivial.
 	
-	Update 0.7 should be the "it" for code framework that can hopefully
-	last a couple of more updates before a need to change it. 
-	Therefore it is crucial to get it "Right"
-
-	The code should also anticipate future "Emission" and "Reflection"
+	The code should also anticipate future Retrieval and MCMC
 	implementation
 
+Multiprocessing
+	Retrieval will need multiprocessing
+	Think about how SEAS can benefit from multiprocessing
+	Also think about notion of multiple biosignatures
 
-Rework the user input
-	The current input uses .json format
-	Despite its usefulness in data formating and loading
-	It has a significant draw back of not being able to add comments easily
-	Therefore will be changed to .cfg format similar to the tsig project. 
-
-Rework the entire code running/working pattern
-	Now that each code will be simultaneously used by multiple tasks, it's no
-	longer feasible to run testing code and executables under 
-	if __name__ == "__main__": 
-	which should only be for testing of the individual module
-	now we put all the executables under /bin and all the source code under
-		/SEAS (main spectral simulation) or
-		/SEAS_Aux (code to create useful data used in the simulation).
-
-Rework how biosignatures are added to the code
-	Added biosignature influence to the mixing ratio, scale height
-	Added main molecules as biosignature molecules
-	Added molecular weight to NIST molecules
+Errorbar on cross section
+	Think about how error bar will propagate for molecules that only have spectral data
+	a smarter and more automatic way to do "automatic baseline correction" for NIST measured spectra
 		
 Rework the noise and error implementation for more robust additions
 	noise has its own separate class
 	how to implement error is still TBD
 
-Rework all the databases
-	We will now have multiple cross section databases
-	cross section database generation code released
-	an example database is provided with a handful of molecules to try out
+Users:
+	Think about how people will use SEAS
+	What kind of documentation people will want to read
 
-Need to create a README example for the code to let users download/calculate their own inputs
 
-Rework bin file nomenclature
-
-		
-
-Goal:
-	A much better version of SEAS than 0.7
-	A comprehensive simulator for exoplanet atmospheres
-	Need a Science/Tech Flowchart ties.
-
-Science Questions to Answer:
-
-	I should host a meeting to go over features and thoughts and figure out what are some of the community need and question we should answer
+Pressure:
+	Take a detail look at astrophysical properties and simulating planets with different 
+	surface pressure. think about how to handle planets with different surface pressure
 	
+Rework Cross section generation... 
+	need to look at temperature/pressure scaling. 
+	rework the line_list_to_cross_Section_calculation. Just use HAPI
 
-
-have spectra simulation in its own folder
-
-Transmission Spectra:
-	1. Molecular Absorption (HITRAN/Exomol)
-	2. Rayleigh Scattering (Haze)
-	3. Collision Induced Absorption
-	4. Mie Scattering (Cloud)
-	5. Auxillary Cross Sections
-	6. Biosignatures from NIST
-
-New Features for 0.8:
-
-	Real life application: what can we detect/distinguish with filters
-	what can we do with ground base telescopes around 10um?
-
+Redo Mie Code
 	write my own mie code please... understand the mie theory.
-
-	multiple biosignatures
-	
-
-	user input should go to input?
-
 	robust dust module
+	fix rayleigh scattering
 
-	need to standarize the smiles and smarts in various database
+need to build a tool to read pdf/images
+	apply this to both pnnl data and vpl data
 
-	need to build a tool to read pdf/images
-		using the pixelation method and OCR method to recogize 
-			plot zero point
-			subplots embedded in main plot
-			axis and its markers
-			marker text
-			precision estimate
-			plot auto tracer
-		apply this to both pnnl data and vpl data....
-			well, politely ask if they have digitized data first
-
-
-	a smarter and more automatic way to do "automatic baseline correction" for NIST measured spectra
-		and understand what lambda and p means from the 2005 paper
-		https://zanran_storage.s3.amazonaws.com/www.science.uva.nl/ContentPages/443199618.pdf
-		
-	Make utility tools available for not just SEAS related projects...
-
-	Better Stellar Spectras
 	
-	Atmospheric Retrieval
-		transmission
-		reflection/emission
-			need albedo of different surfaces
-	
-	Atmospheric Chemistry
-		Photochemistry
-		Biochemistry
-		Equilibrium Chemistry
-		atmospheric circulation?
 		
 	Different Cloud types?
 		cirrus cloud
 		cumulus cloud
 		CO2 clouds? other clouds?
 	
-	Expand to cover warm neptunes and hot jupiters
-	
-	VMR and TP Simulator
-	HITRAN 2016
-		include isotopes? (more isotopes than trace gas)
-	Much higher temperature coverage ~1000k? Also extreme high temperature.
-	Broader Wavelength coverage ? 
-		broad, coarse coverage
-		Targeted specific region coverage
-	Dynamic Plottings
-	Molecular Panel
-	ATMOS_2?
-	Code documentation 
-	
 	xkcd font (perlin noise)
 	ALpy (science plotting)
-	
-	New Utility Codes:
-	
-		1. A better excel saver/loader
-			a. writing multiple columns
-			b. better functions for writting column and row infos
-			c. add toggle to completely overwrite, partial overwrite, over write protect
-		2. A better webscraping template
-		3. Latex Related Code
-			a. Code to convert python list/grid to latex tables
-		4. conversion betwen cfg files to txt files
-		
-		
-Feature Changes
-	Add resolution for different value of R (integration time)
-	
-	should break user_input down to multiple files
-	
-	one thing that's noticable in the code is that everything is so wrapped up that it's 
-	difficult to "break" a small part of the code out for further testing. During the rewrite
-	I should take notice of this fault and make the code more standalone-able.
-	
-Bug Fixes
 
-	1.temporary interpolated cross section need fixing
-	2.need to fix rayleigh scattering
-	3.add more data for CIA.
-	
-	
-	
-	
-	
-	
-Things reserved for 0.8 to handle
 
-	1. user input config files need rework
-		The current system keeps all configs on the same file which can get very big
-		ideally we want to break this down so that it's more flexable to toggle and
-		not repeat many of the same thing.
+add more data for CIA: H2-N2, H2-CO2, N2-CO2, N2-N2, CO2-CO2
 	
-	2. Take a detail look at astrophysical properties and simulating planets with different 
-		surface pressure.
 	
-	3. Realistic simulation taken telescope and pointing into consideration for error bar estimate
 	
-	4. For Main molecules, perhaps we should care about isotopes
 	
-	5. Rework Cross section generation... need to look at temperature/pressure scaling. 
-		rework the line_list_to_cross_Section_calculation. it accuracy always seems ... unsure
 	
-	6. convert all classes to take configurable objects instead of taking in a bunch of parameters
-		rework the data intake for dbm as well
-	
-	7. a better "user" system. if time permit, rename function names to python nomeclature
-	
-	8. redo dbm for 0.7 style. also make up for the needed functionalities and remove redunancies.
-		put "method" and "source together, may help reduce unnecessary space
-		also crop the nu and coef 
 
-	9. think about how to handle planets with different surface pressure
-	
-	10. add exceptions to cases that bound to fail the code
 
-	11. each print function should indicate which module its from
+
+
+
+
+
+
 	
 
 

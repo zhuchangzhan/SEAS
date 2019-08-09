@@ -1,4 +1,4 @@
-SEAS 0.8 Change Log
+SEAS 0.8 Planned Change Log 
 
 ****************************************
 
@@ -14,15 +14,55 @@ SEAS 0.8 is a complete overhaul of SEAS 0.7, everything is changed.
 Here is a documentation of the major changes with SEAS 0.8 and the rationale behind some of the changes
 
 
+****************************************
+Add
+
+1. Project based coding
+	a. Added Example Folder, which includes code templates and project templates
+	b. Each sub folder in example represent an project prototype that uses SEAS in different ways.
+2. Data Analysis Tools
+	a. Added Statistical and data analytic tools
+3. Print Functions 
+	a. indicate where it originate. 
+	b. module level VERBOSE control 
+4. Molecular Absorption
+	a. HITRAN2016
+5. Reflection Spectra
+	a. Planet albedo
+6. Stellar Spectra (needed for better noise calculation)
+
+N. New utilties:
+	a. Pandas
+	b. Tqdm
 
 ****************************************
+Change
+
+1. Configuration Files:
+	a. Break down configuration files into multiple files, each controlling specific parts of the code. 
+	b. Added location for all configuration files, used as default
+	c. Within each project, there will be a project specific configuration files that overwrites the default
+
+2. Cross Section Grid:
+	a. Cross section grids are saved independently so that it doesn't have to be regenerated for each atmosphere type/model
+	b. Much higher temperature coverage (Seperate Grids) for non-biosignature purposes
+	c. Expand to cover warm neptunes and hot jupiters
+
+3. Change all except to except Exceptions.
+
+****************************************
+Delete
 
 1. Removed Database:
 	a. Generally hard to debug/spin-off using databases. 
 	b. Sharp re/learning curve for using database for cross sections
 	c. May reinitiate for speed issues. Will reevaluate this issue when benchmarking
 
-2. Configuration Files:
-	a. Break down configuration files into multiple files, each controlling specific parts of the code. 
-	b. Added location for all configuration files, used as default
-	c. Within each project, there will be a project specific configuration files that overwrites the default
+****************************************
+Planned for 0.9
+
+
+
+
+
+
