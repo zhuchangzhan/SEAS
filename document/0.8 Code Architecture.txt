@@ -29,6 +29,7 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 ---> Public Directory
 /bin	 			# Code executables
 /config				# Default configuration files. Each project will have a separate config that modifies this
+/deprecated			# old code that is not used but should *exist*
 /document			# Code documentation and other schematic/architectural documentation
 /example			# Lite version of /bin
 /publication			# Publications using SEAS
@@ -149,7 +150,8 @@ The inputs for the model includes initial inputs and generated inputs (intermedi
 	/TODO 			# Detailed TODO list directory. An alternative location for Issues, may change in future 
 		/Completed
 		/Dropped
-
+/deprecated
+	/0.7 Old Plots		# These plots should still exist for the purpose of benchmarking and comparing new to old
 /publication	 		# Generating figures and results for published Papers for reproducibility
 	/isoprene_Zhan19/	# Zhuchang Zhan 2019 paper on Isoprene
 	/3D_CCM_Chen19/	# Howard Chen 2019 paper on using 3D climate, chemistry model
