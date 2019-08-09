@@ -29,7 +29,7 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 ---> Public Directory
 /bin	 			# Code executables
 /config				# Default configuration files. Each project will have a separate config that modifies this
-/documentation			# Code documentation and other schematic/architectural documentation
+/document			# Code documentation and other schematic/architectural documentation
 /example			# Lite version of /bin
 /publication			# Publications using SEAS
 /resources			# Resource for Research/Presentation/PR
@@ -63,6 +63,13 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 		/Rayleigh_Scattering.py		# Load Rayleigh scattering
 		/Mie_Scattering.py			# Load Mie scattering by cloud, haze, aerosol
 		/Collision_Induced_Absorption.py	# Load collision induced absorption
+
+	/Cross_Section
+		/absorption_cross_section_generator.py
+		/scattering_cross_section_generator.py
+		/hapi.py
+	
+
 	/Physics/		# Physical calculations
 		/Blackbody.py
 		
@@ -76,8 +83,8 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 		Instrument.py	# set instrument parameters (telescope)
 		Filter.py	# load specific filters (telescope, Earth)
 	
-/SEAS_Util			# Utilities and Auxiliary functions for pre-processing and post-processing
-	/Common
+/SEAS_Utils			# Utilities and Auxiliary functions for pre-processing and post-processing
+	/Common_Utils
 		/constants.py
 		/data_loader.py
 		/data_saver.py
@@ -86,15 +93,12 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 		/cachable.py
 		/database_management.py
 	
-	/Statistics
+	/Statistic_Utils
 		/Error.py	# calculate error bar 
 		/Analysis	# Statistical analysis tools
 
-	/cross_section
-		/cross_section_generator.py
-		/hapi.py
-	
-	/data_downloader
+
+	/Web_Utils
 		/Web_Scraper.py
 		/NIST_Spectra_Downloader.py
 		/PNNL_Spectra_Downloader.py
@@ -102,7 +106,7 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 		/HITRAN_Cross_Section_Downloader.py
 		/Exomol_Cross_Section_Downloader.py
 	
-	/user_friendly
+	/User_Utils
 		/GUI.py
 		/Voice.py
 
@@ -121,16 +125,17 @@ The inputs for the model includes initial inputs and generated inputs (intermedi
 	/Atmosphere_Prototype
 /Cross_Section/
 	/ExoMol/
-	/HITRAN/
+	/HITRAN_Xsec/
+	/HITRAN_CIA/
 	/Generated/
 /Line_List/
 	/Atomic_Line_List/
 	/HITRAN_Line_List/
-	/HITRAN_CIA/
+	
 /Spectra/
 	/NIST/
 	/PNNL/
-/Stellar/			# Stellar Spectra. SEAS does not model stellar spectra. Here are samples
+	/Stellar/		# Stellar Spectra. SEAS does not model stellar spectra. Here are samples
 	
 
 
