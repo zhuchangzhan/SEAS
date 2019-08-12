@@ -23,11 +23,12 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 				# Updates based on date. Mostly for testing. Common executable will be ported to /bin
 				# This usually serves as a testing folder for new tool and debugging
 				# Email author for details
+/A.Projects			# work that may span multiple days of development
 /B.Old_Progress		# Old code with no incentive to touch. Not public.
 
 
 ---> Public Directory
-/bin	 			# Code executables
+/bin	 			# Code executables (well tested and stable)
 /config				# Default configuration files. Each project will have a separate config that modifies this
 /deprecated			# old code that is not used but should *exist*
 /document			# Code documentation and other schematic/architectural documentation
@@ -70,7 +71,6 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 		/scattering_cross_section_generator.py
 		/hapi.py
 	
-
 	/Physics/		# Physical calculations
 		/Blackbody.py
 		
@@ -79,6 +79,7 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 		/Transmission_Spectroscopy.py
 		/Emission_Spectroscopy.py
 		/Reflection_Spectroscopy.py
+
 	/Observation		# constraint the spectra to certain observation
 		Noise.py	# calculate instrument noise
 		Instrument.py	# set instrument parameters (telescope)
@@ -97,7 +98,6 @@ SEAS only generates spectra from input atmosphere conditions. It does not calcul
 	/Statistic_Utils
 		/Error.py	# calculate error bar 
 		/Analysis	# Statistical analysis tools
-
 
 	/Web_Utils
 		/Web_Scraper.py
@@ -132,13 +132,11 @@ The inputs for the model includes initial inputs and generated inputs (intermedi
 /Line_List/
 	/Atomic_Line_List/
 	/HITRAN_Line_List/
-	
 /Spectra/
 	/NIST/
 	/PNNL/
 	/Stellar/		# Stellar Spectra. SEAS does not model stellar spectra. Here are samples
 	
-
 
 ****************************************
 4. Code Documentation and Resources
@@ -155,8 +153,6 @@ The inputs for the model includes initial inputs and generated inputs (intermedi
 /publication	 		# Generating figures and results for published Papers for reproducibility
 	/isoprene_Zhan19/	# Zhuchang Zhan 2019 paper on Isoprene
 	/3D_CCM_Chen19/	# Howard Chen 2019 paper on using 3D climate, chemistry model
-
-
 /resource
 	/Presentation_Figures	# figures that can be used for presentations
 
