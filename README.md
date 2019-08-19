@@ -32,11 +32,7 @@ If you have anaconda installed you should have most of the packages. If not, you
 numpy
 scipy
 matplotlib
-
-openpyxl
-
-pyastronomy
-
+pandas
 
 
 
