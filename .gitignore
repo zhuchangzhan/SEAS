@@ -5,6 +5,7 @@ A.Projects/
 .project
 .pydevproject
 .DS_Store
+config/SEAS_ENV
 
 
 # Byte-compiled / optimized / DLL files
