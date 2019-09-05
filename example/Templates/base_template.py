@@ -8,6 +8,8 @@ Let's build the user input section first
 
 """
 
+
+
 import os
 import sys
 
@@ -17,18 +19,12 @@ sys.path.insert(0, os.path.join(DIR, '../..'))
 import SEAS_Utils.Common_Utils.configurable as config
 
 
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
-
-
-
+def load_user_input():
+    user_input = config.Configuration("../../config/user_input.cfg")
+    return user_input
 
 def main():
-    
-    user_input = config.Configuration("../../config/user_input.cfg")
-    
-    pp.pprint(user_input)
-    
+    load_user_input()
     
 if __name__ == "__main__":
     main()
