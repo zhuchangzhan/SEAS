@@ -95,4 +95,4 @@ if __name__ == '__main__':
     assert B({}).a == 4
     assert B({'C': {'a': 20, 'd': False}}).a == 20
     assert B({'C': {'a': 20}, 'A': {'a': 9}}).a == 9
-    print "OK"
+    print("OK")
