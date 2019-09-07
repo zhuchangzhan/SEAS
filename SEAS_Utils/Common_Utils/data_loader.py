@@ -1,4 +1,3 @@
-
 import os
 import sys
 import numpy as np
@@ -78,6 +77,7 @@ def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
     user_input["Prototype"]["Molecule_List"] = Molecule_List
     user_input["Prototype"]["TP_Profile"] = TP_Profile
     user_input["Prototype"]["MR_Profile"] = MR_Profile
+    user_input["Atmosphere"]["Pressure_Layers"] = P_z_Pa
     
     return user_input
 

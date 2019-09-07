@@ -26,7 +26,7 @@ import numpy as np
 DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
 
-from SEAS_Utils.common_utils.constants import *
+from SEAS_Utils.Common_Utils.constants import *
 
 def planck(wav,T):
     """
