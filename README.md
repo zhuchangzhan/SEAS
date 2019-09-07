@@ -20,5 +20,6 @@ The code for this is under Example/...
 # Generating the Molecular Absorption Cross Section Database
 (This will take a very very long time. ~A few days and take up about 5GB of Storage)
 
-
+# Bugs
+something is wrong when trying to git commit SEAS
 
