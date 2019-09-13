@@ -2,8 +2,6 @@ import sys
 import time
 import inspect
 
-
-
 def timeit(method):
     def timed(*args, **kw):
         ts = time.time()

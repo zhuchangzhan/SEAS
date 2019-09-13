@@ -10,12 +10,34 @@ sys.path.insert(0, os.path.join(DIR, '../..'))
 
 from SEAS_Utils.Common_Utils.constants import *
 import SEAS_Main.Physics.astrophysics as calc
+from SEAS_Main.Simulation.cloud import Simple_Gray_Cloud_Simulator
 import SEAS_Utils.System_Utils.optimization as opt
 import SEAS_Utils.Common_Utils.db_management2 as dbm
 import SEAS_Utils.Common_Utils.interpolation as interp
 
+@opt.timeit
 def load_Observation_Data(user_input):
     return
+
+@opt.timeit
+def load_Astrophysical_Properties(user_input):
+    """
+    There is going to be more development here in the future
+    For now it's just loading the star and planet radius, then calculate the baseline
+    for the simulation
+    """
+    
+    R_Star          = float(user_input["Star"]["R_Star"])*R_Sun
+    R_planet        = float(user_input["Planet"]["R_Planet"])*R_Earth
+    M_planet        = float(user_input["Planet"]["M_Planet"])*M_Earth
+    
+    user_input["Planet"]["Surface_Gravity"] = calc.calc_SurfaceG(M_planet, R_planet)
+    user_input["Atmosphere"]["Base_TS_Value"]   = (R_planet/R_Star)**2
+    
+    return user_input
+
+
+#@jit(nopython=True)
 
 @opt.timeit
 def load_Atmosphere_Profile(user_input,source,scenario_file=None):
@@ -27,7 +49,13 @@ def load_Atmosphere_Profile(user_input,source,scenario_file=None):
     By Default is loading source from photochemistry code:
     """
     if source == "Photochemistry" and scenario_file != None:
+        
+        # Create a Hash of the TP profile so that cross sections only need to be generated once per profile
+        # Some testing here or a better format is needed
         return load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file)
+    else:
+        print("Not Implemented")
+        sys.exit()
 
 def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
     """
@@ -89,9 +117,23 @@ def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
     return user_input
 
 @opt.timeit
+def load_Absorption_Cross_Section(user_input):
+    
+    # Load Absorption cross section
+    info = Xsec_Loader(user_input)
+    for molecule in user_input["Prototype"]["Molecule_List"]:
+        info.load_HITRAN(molecule,reuse=True)
+        user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
+    
+    # Load Rayleigh Scattering cross section
+    user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
+    user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
+    user_input["Xsec"]["nu"] = info.nu
+    return user_input
+
 def HITRAN_xsec_loader(user_input, db_dir, molecule):
     """
-    
+    This need to be integrated/updated
     """
 
     T_grid = user_input["Xsec"]["Molecule"]["T_Grid"]
@@ -145,26 +187,6 @@ def HITRAN_xsec_loader(user_input, db_dir, molecule):
     return nu, data
 
 
-def load_Astrophysical_Properties(user_input):
-    """
-    There is going to be more development here in the future
-    For now it's just loading the star and planet radius, then calculate the baseline
-    for the simulation
-    """
-    
-    R_Star          = float(user_input["Star"]["R_Star"])*R_Sun
-    R_planet        = float(user_input["Planet"]["R_Planet"])*R_Earth
-    M_planet        = float(user_input["Planet"]["M_Planet"])*M_Earth
-    
-    Surface_Gravity = calc.calc_SurfaceG(M_planet, R_planet)
-
-    Base_TS_Value   = (R_planet/R_Star)**2
-    
-    return user_input
-
-
-#@jit(nopython=True)
-
 
 class Xsec_Loader():
     """
@@ -191,23 +213,19 @@ class Xsec_Loader():
     
     def load_HITRAN(self, molecule, reuse=True, savepath=None, savename=None):
     
-        savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/"
-        savename = savename or "%s_%s.npy"%(molecule,self.user_input["Data_IO"]["Hash"])
+        hash = self.user_input["Data_IO"]["Hash"]
+        savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/%s"%hash
+        savename = savename or "%s_%s.npy"%(molecule,hash)
         filepath = os.path.join(savepath,savename)
     
         if reuse and os.path.isfile(filepath):
             self.nu,self.xsec[molecule] = np.load(filepath)
             print("%s Cross Section Loaded"%molecule)
         else:
-            # Loading Xsec from save to memory
             # This step can be optimized for retrieval by only loading it once
             self.nu, raw_cross_section_grid = HITRAN_xsec_loader(self.user_input, self.DB_DIR, molecule) 
-            
-            processed_cross_section = self.transform(raw_cross_section_grid)
-            
-            self.xsec[molecule] = processed_cross_section
-            
-            np.save(filepath, [self.nu,processed_cross_section])
+            self.xsec[molecule] = self.transform(raw_cross_section_grid)
+            np.save(filepath, [self.nu,self.xsec[molecule]])
             print("%s Cross Section Saved"%molecule)
 
     def load_Exomol(self, molecule):
@@ -241,9 +259,33 @@ class Xsec_Loader():
         
         return normalized_xsec
 
+    def load_rayleigh_scattering(self,molecules):
+        """
+        currently not caring about biosignature molecule rayleigh?
+        """
+        
+        Rayleigh_array = {}
+        for molecule in molecules:
+            Rayleigh_array[molecule] = calc.calc_rayleigh(molecule, self.nu)
+        print("Rayleigh Scatter Loaded")
+        return Rayleigh_array
 
+    def load_gray_cloud(self):
 
-
+        normalized_cloud_xsec = []
+        cloud_deck    = float(self.user_input["Xsec"]["Cloud"]["Deck"])
+        cloud_opacity = float(self.user_input["Xsec"]["Cloud"]["Opacity"])
+        normalized_pressure = np.array(self.user_input["Prototype"]["TP_Profile"]["Normalized_Pressure"],dtype=float)
+        
+        #c = Simple_Gray_Cloud_Simulator(cloud_deck,cloud_opacity)
+        
+        for i,P in enumerate(normalized_pressure):
+            if P < cloud_deck:
+                normalized_cloud_xsec.append(np.zeros(len(self.nu)))
+            else:
+                normalized_cloud_xsec.append(np.ones(len(self.nu))*cloud_opacity)
+        print("Gray Cloud Loaded")
+        return normalized_cloud_xsec   
 
 
 
