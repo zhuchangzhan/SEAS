@@ -7,7 +7,7 @@ SEAS_Env/
 .pydevproject
 .DS_Store
 config/SEAS_ENV
-
+SEAS_Input/Cross_Section/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

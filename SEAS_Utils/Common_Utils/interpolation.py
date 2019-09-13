@@ -37,10 +37,11 @@ def interpolate1d(x,y,X,style="linear"):
         except:
             print(X)
             print(x)
+            print("failed")
             sys.exit()
         return Y
     else:
-        print "other interpolation methods not implemented yet"
+        print("other interpolation methods not implemented yet")
         sys.exit()
 
 def interpolate2d(x,y,X,Y,Z):
