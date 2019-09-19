@@ -1,9 +1,13 @@
 import os
 import sys
+import h5py
 import hashlib
 import numpy as np
 from numba import jit
 import matplotlib.pyplot as plt
+
+from scipy.interpolate import RegularGridInterpolator
+
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
@@ -117,75 +121,19 @@ def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
     return user_input
 
 @opt.timeit
-def load_Absorption_Cross_Section(user_input):
+def load_Absorption_Cross_Section(user_input,reuse=True):
     
     # Load Absorption cross section
-    info = Xsec_Loader(user_input)
+    info = Xsec_Loader(user_input,reuse)
     for molecule in user_input["Prototype"]["Molecule_List"]:
-        info.load_HITRAN(molecule,reuse=True)
+        info.load_HITRAN(molecule)
         user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
     
     # Load Rayleigh Scattering cross section
     user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
     user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
-    user_input["Xsec"]["nu"] = info.nu
+    user_input["Xsec"]["nu"]                = info.nu
     return user_input
-
-def HITRAN_xsec_loader(user_input, db_dir, molecule):
-    """
-    This need to be integrated/updated
-    """
-
-    T_grid = user_input["Xsec"]["Molecule"]["T_Grid"]
-    P_grid = user_input["Xsec"]["Molecule"]["P_Grid"]
-
-    try:
-
-        kwargs = {"dir"        :db_dir,
-                  "db_name"    :"cross_section_Simulation_%s.db"%molecule,
-                  "user"       :"azariven",
-                  "DEBUG"      :False,
-                  "REMOVE"     :True,
-                  "BACKUP"     :False,
-                  "OVERWRITE"  :True}
-        
-        cross_db = dbm.database(**kwargs)  
-        cross_db.access_db()  
-    
-        data = [[0 for y in range(len(T_grid))] for x in range(len(P_grid))]
-        for j,P in enumerate(P_grid):
-            for i,T in enumerate(T_grid):
-                table_name = "T%sP%s"%(i,j)
-                result = cross_db.c.execute("SELECT * FROM {} ORDER BY nu".format(table_name))
-                fetch = np.array(result.fetchall()).T
-                data[j][i] = fetch[1] # this is so messed up... why reverse this... why... 
-                
-        nu = fetch[0]
-    except:
-        kwargs = {"dir"        :db_dir,
-                  "db_name"    :"cross_section_Simulation_%s.db"%("N2"),
-                  "user"       :"azariven",
-                  "DEBUG"      :False,
-                  "REMOVE"     :True,
-                  "BACKUP"     :False,
-                  "OVERWRITE"  :True}
-        
-        cross_db = dbm.database(**kwargs)  
-        cross_db.access_db()  
-    
-        data = [[0 for y in range(len(T_grid))] for x in range(len(P_grid))]
-        for j,P in enumerate(P_grid):
-            for i,T in enumerate(T_grid):
-                table_name = "T%sP%s"%(i,j)
-                result = cross_db.c.execute("SELECT * FROM {} ORDER BY nu".format(table_name))
-                fetch = np.array(result.fetchall()).T
-                data[j][i] = fetch[1]
-                
-        nu = fetch[0]
-
-    
-    return nu, data
-
 
 
 class Xsec_Loader():
@@ -196,8 +144,9 @@ class Xsec_Loader():
     loaded in "load_HITRAN"? it's already loaded with __init__
     """
 
-    def __init__(self, user_input):
+    def __init__(self, user_input,reuse=True):
         self.user_input = user_input
+        self.reuse = reuse
         
         TP_Profile = user_input["Prototype"]["TP_Profile"]
         self.normalized_pressure        = TP_Profile["Normalized_Pressure"]
@@ -205,26 +154,38 @@ class Xsec_Loader():
         self.normalized_scale_height    = user_input["Prototype"]["Normalized_Scale_Height"]
         self.xsec = {}
         
-        self.DB_DIR = "../../SEAS_Input/Cross_Section/Simulation_Band"
+        self.DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
     
         # for interpolating the cross section
         self.x = self.user_input["Xsec"]["Molecule"]["T_Grid"]
         self.X = self.normalized_temperature 
+        
+    def load_wavelength(self):
+        pass
     
-    def load_HITRAN(self, molecule, reuse=True, savepath=None, savename=None):
+    
+    def load_HITRAN(self, molecule, savepath=None, savename=None):
     
         hash = self.user_input["Data_IO"]["Hash"]
         savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/%s"%hash
         savename = savename or "%s_%s.npy"%(molecule,hash)
         filepath = os.path.join(savepath,savename)
     
-        if reuse and os.path.isfile(filepath):
+        if self.reuse and os.path.isfile(filepath):
             self.nu,self.xsec[molecule] = np.load(filepath)
             print("%s Cross Section Loaded"%molecule)
         else:
             # This step can be optimized for retrieval by only loading it once
-            self.nu, raw_cross_section_grid = HITRAN_xsec_loader(self.user_input, self.DB_DIR, molecule) 
-            self.xsec[molecule] = self.transform(raw_cross_section_grid)
+            T_grid = self.user_input["Xsec"]["Molecule"]["T_Grid"]
+            P_grid = self.user_input["Xsec"]["Molecule"]["P_Grid"]
+            
+            nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
+            self.nu = np.array(nu["results"])
+            
+            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+            raw_cross_section_grid = np.array(xsec["results"])
+             
+            self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
             np.save(filepath, [self.nu,self.xsec[molecule]])
             print("%s Cross Section Saved"%molecule)
 
@@ -236,9 +197,9 @@ class Xsec_Loader():
         
         self.xsec = ["NIST_%s not implemented"%molecule] 
 
-    def transform(self,raw_cross_section_grid):
-        from scipy.interpolate import RegularGridInterpolator
-
+    @opt.timeit
+    def grid_interpolate(self,raw_cross_section_grid):
+        
         T_Grid = np.array(self.user_input["Xsec"]["Molecule"]["T_Grid"],dtype=float)
         P_Grid = np.array(self.user_input["Xsec"]["Molecule"]["P_Grid"],dtype=float)
         

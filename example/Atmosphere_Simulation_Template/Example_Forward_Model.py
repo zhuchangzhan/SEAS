@@ -287,7 +287,7 @@ def Forward_Model_Architecture():
     user_input = load.load_Astrophysical_Properties(user_input)
     
     # Load absorption cross section for all molecule and effect (CIA, Cloud, etc)
-    user_input = load.load_Absorption_Cross_Section(user_input)
+    user_input = load.load_Absorption_Cross_Section(user_input,False)
     
     # Load Atmosphere model and generate theoretical spectra
     user_input = Generate_Atmosphere_Spectra(user_input)
