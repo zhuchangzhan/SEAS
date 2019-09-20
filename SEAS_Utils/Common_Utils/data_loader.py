@@ -163,8 +163,8 @@ class Xsec_Loader():
     def load_wavelength(self):
         pass
     
-    
     def load_HITRAN(self, molecule, savepath=None, savename=None):
+        # This step can be optimized for retrieval by only loading it once
     
         hash = self.user_input["Data_IO"]["Hash"]
         savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/%s"%hash
@@ -175,10 +175,6 @@ class Xsec_Loader():
             self.nu,self.xsec[molecule] = np.load(filepath)
             print("%s Cross Section Loaded"%molecule)
         else:
-            # This step can be optimized for retrieval by only loading it once
-            T_grid = self.user_input["Xsec"]["Molecule"]["T_Grid"]
-            P_grid = self.user_input["Xsec"]["Molecule"]["P_Grid"]
-            
             nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
             self.nu = np.array(nu["results"])
             
