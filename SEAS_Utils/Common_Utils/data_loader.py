@@ -198,26 +198,20 @@ class Xsec_Loader():
         self.xsec = ["NIST_%s not implemented"%molecule] 
 
     @opt.timeit
-    def grid_interpolate(self,raw_cross_section_grid):
+    def grid_interpolate(self,xsec_grid):
         
         T_Grid = np.array(self.user_input["Xsec"]["Molecule"]["T_Grid"],dtype=float)
         P_Grid = np.array(self.user_input["Xsec"]["Molecule"]["P_Grid"],dtype=float)
         
         # creating the 2D interpolation function
         # the [::-1] is because it needs to be strictly ascending
-        f = RegularGridInterpolator((np.log10(P_Grid[::-1]),T_Grid,self.nu), 
-                                     raw_cross_section_grid[::-1])
-        normalized_xsec = []
-        for P_E,T_E in zip(self.normalized_pressure,self.normalized_temperature):
-            pts = [[np.log10(P_E),T_E,n] for n in self.nu]
-            try:
-                normalized_xsec.extend([f(pts)])
-            except:
-                print("interpolation error")
-                normalized_xsec.extend([np.zeros(len(self.nu))])
-                
-        assert(np.shape(normalized_xsec)==(len(self.normalized_pressure), len(self.nu)))
-        
+        f = RegularGridInterpolator((np.log10(P_Grid[::-1]),T_Grid, self.nu),xsec_grid[::-1])
+        wave = len(self.nu)
+        layer = len(self.normalized_pressure)
+        normalized_xsec = np.zeros((layer,wave))
+        for i,(P_E,T_E) in enumerate(zip(np.log10(self.normalized_pressure),self.normalized_temperature)):
+            normalized_xsec[i] = f(np.array([np.ones(wave)*P_E, np.ones(wave)*T_E, self.nu]).T)
+            
         return normalized_xsec
 
     def load_rayleigh_scattering(self,molecules):
