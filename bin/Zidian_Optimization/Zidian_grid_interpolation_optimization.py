@@ -18,7 +18,8 @@ import sys
 import time
 import h5py
 import numpy as np
-from scipy.interpolate import RegularGridInterpolator
+from scipy.interpolate import RegularGridInterpolator as rgi
+
 
 def timeit(method):
     def timed(*args, **kw):
@@ -53,14 +54,14 @@ def grid_interpolate():
     normalized_pressure    = [91483.44,76196.15,62819.36,51203.54,41203.06,32676.27,25519.61,19650.63,14928.96,11241.97,8449.276,6350.326,4772.792,3587.15,2696.038,2026.294,1522.927,1144.605,860.2655,646.5602,485.9432,365.2267,274.4979,206.3077,155.0572,116.5383,87.58818,65.82972,49.47645,37.18566,27.94808,21.00528,15.7872,11.86538,8.917816,6.702472,5.037459,3.786069,2.845542,2.138659,1.607378,1.208077,0.90797,0.6824141,0.5128903,0.3854792,0.2897193,0.2177482,0.1636556,0.1230007,0.09244523,0.06948019,0.05222008,0.03924768]
     normalized_temperature = [280.786111,266.358333,251.930556,237.502778,223.075,208.647222,196.405694,186.593333,178.404306,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0,175.0]
     
-    # creating the 2D interpolation function
-    # need to convert P from exp() scale to linear scale because the grid interpolation does poorly for exp() scale
-    # the [::-1] is needed because it needs to be strictly ascending
-    f = RegularGridInterpolator((np.log10(P_Grid[::-1]),T_Grid,wavelength),xsec_grid[::-1])
-    normalized_xsec = []
-    for P_E,T_E in zip(normalized_pressure,normalized_temperature):
-        pts = [[np.log10(P_E),T_E,n] for n in wavelength]
-        normalized_xsec.extend([f(pts)])
+    normalized_xsec = np.zeros((54,12000))
+    fn = rgi((np.log10(P_Grid[::-1]),T_Grid, wavelength),xsec_grid[::-1])
+    for i,(P_E,T_E) in enumerate(zip(np.log10(normalized_pressure),normalized_temperature)):
+        pts = np.array([np.ones(len(wavelength))*P_E,
+                                         np.ones(len(wavelength))*T_E,
+                                         wavelength]).T
+        normalized_xsec[i] = fn(pts) 
+        
             
     return normalized_xsec
 
