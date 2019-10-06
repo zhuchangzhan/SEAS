@@ -7,8 +7,8 @@ SEAS_Env/
 .pydevproject
 .DS_Store
 config/SEAS_ENV
-SEAS_Input/Cross_Section/
-!SEAS_Input/Cross_Section/HDF5_DB/*.hdf5
+SEAS_Input/Cross_Section/*
+!SEAS_Input/Cross_Section/HDF5_DB
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
