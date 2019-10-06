@@ -33,8 +33,10 @@ def load_Astrophysical_Properties(user_input):
     R_Star          = float(user_input["Star"]["R_Star"])*R_Sun
     R_planet        = float(user_input["Planet"]["R_Planet"])*R_Earth
     M_planet        = float(user_input["Planet"]["M_Planet"])*M_Earth
-    
-    user_input["Planet"]["Surface_Gravity"] = calc.calc_SurfaceG(M_planet, R_planet)
+
+    if user_input["Planet"]["Surface_Gravity"] == "-1":
+        user_input["Planet"]["Surface_Gravity"]     = calc.calc_SurfaceG(M_planet, R_planet)
+        
     user_input["Atmosphere"]["Base_TS_Value"]   = (R_planet/R_Star)**2
     
     return user_input
@@ -72,13 +74,10 @@ def interpolate_atmosphere_profile(user_input):
     Molecule_List       = user_input["Prototype"]["Molecule_List"] 
     MR_Profile          = user_input["Prototype"]["Input_MR_Profile"] 
     
-    scale_height = user_input["Prototype"]["Input_Scale_Height"]
-    
     assert np.log10(TP_Pressure)[0] < 100 and np.log10(TP_Pressure)[-1] > -100
     
     x = np.concatenate([[100],np.log10(TP_Pressure),[-100]])
     y = np.concatenate([[TP_Temperature[0]],TP_Temperature,[TP_Temperature[-1]]])
-    z = np.concatenate([[scale_height[0]],scale_height,[scale_height[-1]]])
     
     normalized_MR_profile = MR_Profile.copy()
     for molecule in Molecule_List:
@@ -87,11 +86,30 @@ def interpolate_atmosphere_profile(user_input):
         normalized_MR_profile[molecule] = interp1d(x,k)(np.log10(normalized_pressure))
     
     user_input["Prototype"]["Normalized_Temperature"]  = interp1d(x,y)(np.log10(normalized_pressure))
-    user_input["Prototype"]["Normalized_Scale_Height"] = interp1d(x,z)(np.log10(normalized_pressure))
     user_input["Prototype"]["Normalized_MR_Profile"]   = normalized_MR_profile
 
     return user_input
 
+def calculate_scale_height(user_input):
+    
+    Molecule_List          = user_input["Prototype"]["Molecule_List"] 
+    normalized_MR_profile  = user_input["Prototype"]["Normalized_MR_Profile"]
+    normalized_temperature = user_input["Prototype"]["Normalized_Temperature"]
+    Surface_Gravity        = user_input["Planet"]["Surface_Gravity"]
+    
+    molecular_weight_list = calc.get_MolWeight(Molecule_List)
+    profile_per_layer = np.array(normalized_MR_profile.values()).T
+   
+    normalized_scale_height = np.zeros(len(normalized_temperature))
+    for i,abundance_per_layer in enumerate(profile_per_layer):
+        mean_mw      = calc.calc_MeanMolWeight(abundance_per_layer, molecular_weight_list)
+        scale_height = calc.calc_H(normalized_temperature[i], mean_mw*mH, Surface_Gravity)
+        normalized_scale_height[i] = scale_height
+        
+    user_input["Prototype"]["Normalized_Scale_Height"] = normalized_scale_height
+    
+    return user_input
+    
 def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
     """
     generate mixing ratio profile from renyu's simulation
@@ -174,6 +192,9 @@ def load_Atmosphere_Profile(user_input,source,scenario_file=None):
     # This is to standarize simulation?
     user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
     user_input = interpolate_atmosphere_profile(user_input)
+    user_input = calculate_scale_height(user_input)
+    
+    
     
     return user_input
 
@@ -185,7 +206,6 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
     a = str(user_input["Prototype"]["Normalized_Pressure"])
     b = str(user_input["Prototype"]["Normalized_Temperature"])
     user_input["Data_IO"]["Hash"] = hashlib.sha224((a+b).encode()).hexdigest()[:8]
-    
     
     # Load Absorption cross section
     info = Xsec_Loader(user_input,reuse)

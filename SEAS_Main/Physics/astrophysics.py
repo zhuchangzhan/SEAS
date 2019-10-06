@@ -27,6 +27,7 @@ DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
 
 from SEAS_Utils.Common_Utils.constants import *
+from SEAS_Main.Physics.molecular_weight import calculate_mw
 
 def planck(wav,T):
     """
@@ -53,7 +54,19 @@ def calc_H(Temperature, MeanMolWeight, SurfaceG, r=2):
     
     
     return round((BoltK*Temperature)/(MeanMolWeight*SurfaceG),r)
+
+def get_MolWeight(molecules):
+    """
+    get the molecular weight for molecules
+    """
+    mw = np.zeros(len(molecules))
+    for i,molecule in enumerate(molecules):
+        mw[i] = calculate_mw(molecule)
+    return mw
+        
     
+    
+
 def calc_MeanMolWeight(molecules, molecular_weight):
     """
     calculate the mean molecular weight
