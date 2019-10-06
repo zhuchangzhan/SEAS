@@ -19,7 +19,6 @@ class Transmission_Spectra_Simulator():
         # Loading all the respective data from dictionary into parameters
         prototype = self.user_input["Prototype"]
         
-        
         normalized_pressure         = np.array(prototype["Normalized_Pressure"],dtype=float)
         normalized_temperature      = np.array(prototype["Normalized_Temperature"],dtype=float)
         normalized_molecules        = prototype["Molecule_List"]
@@ -30,7 +29,7 @@ class Transmission_Spectra_Simulator():
         normalized_cross_section    = self.user_input["Xsec"]["Molecule"]
         normalized_rayleigh         = self.user_input["Xsec"]["Rayleigh"]["Value"]
         normalized_cloud_xsec       = self.user_input["Xsec"]["Cloud"]["Value"]
-   
+        
         TotalBeams           = len(normalized_pressure)
         Total_Tau            = np.zeros(len(nu))
         Offset               = 0#float(self.user_input["Atmosphere_Effects"]["Base_Line"]["offset"])
@@ -52,18 +51,22 @@ class Transmission_Spectra_Simulator():
     
             # opacity per beam
             BeamTau = []
+            
             prev_pathl = 0
-            target_layer = base_layer        
+            target_layer = base_layer    
+            
+            
             for j in range(TotalBeams-i):
-                cur = j+1
+                cur = j+i
                 
                 target_layer += normalized_scale_height[cur]
                 pathl = np.sin(np.arccos(base_layer/target_layer))*target_layer - prev_pathl
                 prev_pathl += pathl   
                 
+                
                 # opacity per chunk of the beam, this can be thought as the test tube case
                 ChunkTau = []        
-                for molecule in normalized_molecules:        
+                for molecule in normalized_molecules:       
                     
                     #weird how abundance and cross section are wired differently
                     molecular_ratio = normalized_abundance[molecule][cur]
@@ -78,7 +81,10 @@ class Transmission_Spectra_Simulator():
                     if ChunkTau == []:
                         ChunkTau = ChunkTau_Per_Molecule
                     else:
-                        ChunkTau += ChunkTau_Per_Molecule   
+                        ChunkTau += ChunkTau_Per_Molecule 
+                
+                
+                
 
                 """
                 if CIA:
@@ -98,13 +104,13 @@ class Transmission_Spectra_Simulator():
                 """
                 # Simulating cloud
                 if Cloud:
-                    ChunkTau+= normalized_cloud_xsec[cur]
+                   ChunkTau+= normalized_cloud_xsec[cur]
                     
                 # Sum up all the absorption along the beam 
                 if BeamTau == []:
                     BeamTau = ChunkTau
                 else:
-                    BeamTau += ChunkTau                       
+                    BeamTau += ChunkTau   
             
             BeamTrans = calc.calc_transmittance(BeamTau) 
             effective_height = (1-BeamTrans)*normalized_scale_height[i]
@@ -114,40 +120,14 @@ class Transmission_Spectra_Simulator():
             Total_Transit_Signal += Ring_Transit_Signal
             Atmosphere_Height += effective_height
             
+            
             # update to the next beam up
             prev_layer = base_layer
             base_layer += normalized_scale_height[i]        
         
-    
         self.user_input["Spectra"]["Wavelength"] = nu
         self.user_input["Spectra"]["Atmosphere_Height"] = Atmosphere_Height
         self.user_input["Spectra"]["Total_Transit_Signal"] = Total_Transit_Signal
-        
-        
-    
-        """
-        self.min_signal = (self.R_planet/self.R_Star)**2
-        
-        try:
-            self.deckheight = self.normalized_scale_height[0]*np.log10(self.normalized_pressure[0]/self.cloud_deck)
-        except:
-            self.deckheight = 0 
-        
-        self.deck_signal = ((self.R_planet+self.deckheight)/self.R_Star)**2
-        self.max_signal = ((self.R_planet+sum(normalized_scale_height))/self.R_Star)**2
-        
-        if result == "Trans":
-            Raw_Transit_Signal = Total_Transit_Signal
-        elif result == "Absorp":
-            Raw_Transit_Signal = Total_Tau
-        elif result == "Height":
-            return Atmosphere_Height
-        elif result == "R/Rp":
-            return Total_Height/R_Earth
-        
-        return Raw_Transit_Signal             
-        """
-        
         
         
         

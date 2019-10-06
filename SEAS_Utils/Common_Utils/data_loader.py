@@ -18,6 +18,8 @@ import SEAS_Utils.System_Utils.optimization as opt
 import SEAS_Utils.Common_Utils.db_management2 as dbm
 import SEAS_Utils.Common_Utils.interpolation as interp
 
+VERBOSE = False
+
 @opt.timeit
 def load_Observation_Data(user_input):
     return
@@ -33,6 +35,7 @@ def load_Astrophysical_Properties(user_input):
     R_Star          = float(user_input["Star"]["R_Star"])*R_Sun
     R_planet        = float(user_input["Planet"]["R_Planet"])*R_Earth
     M_planet        = float(user_input["Planet"]["M_Planet"])*M_Earth
+    
 
     if user_input["Planet"]["Surface_Gravity"] == "-1":
         user_input["Planet"]["Surface_Gravity"]     = calc.calc_SurfaceG(M_planet, R_planet)
@@ -85,6 +88,7 @@ def interpolate_atmosphere_profile(user_input):
         k = np.concatenate([[profile[0]],profile,[profile[-1]]])
         normalized_MR_profile[molecule] = interp1d(x,k)(np.log10(normalized_pressure))
     
+    
     user_input["Prototype"]["Normalized_Temperature"]  = interp1d(x,y)(np.log10(normalized_pressure))
     user_input["Prototype"]["Normalized_MR_Profile"]   = normalized_MR_profile
 
@@ -105,7 +109,7 @@ def calculate_scale_height(user_input):
         mean_mw      = calc.calc_MeanMolWeight(abundance_per_layer, molecular_weight_list)
         scale_height = calc.calc_H(normalized_temperature[i], mean_mw*mH, Surface_Gravity)
         normalized_scale_height[i] = scale_height
-        
+      
     user_input["Prototype"]["Normalized_Scale_Height"] = normalized_scale_height
     
     return user_input
@@ -194,8 +198,6 @@ def load_Atmosphere_Profile(user_input,source,scenario_file=None):
     user_input = interpolate_atmosphere_profile(user_input)
     user_input = calculate_scale_height(user_input)
     
-    
-    
     return user_input
 
 @opt.timeit
@@ -257,7 +259,8 @@ class Xsec_Loader():
     
         if self.reuse and os.path.isfile(filepath):
             self.nu,self.xsec[molecule] = np.load(filepath)
-            print("%s Cross Section Loaded"%molecule)
+            if VERBOSE:
+                print("%s Cross Section Loaded"%molecule)
         else:
             
             nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
@@ -271,7 +274,8 @@ class Xsec_Loader():
             if not os.path.isdir(savepath):
                 os.makedirs(savepath)   
             np.save(filepath, [self.nu,self.xsec[molecule]])
-            print("%s Cross Section Saved"%molecule)
+            if VERBOSE:
+                print("%s Cross Section Saved"%molecule)
 
     def load_Exomol(self, molecule):
         

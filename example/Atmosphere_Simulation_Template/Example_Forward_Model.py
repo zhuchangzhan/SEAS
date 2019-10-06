@@ -277,17 +277,14 @@ def Forward_Model_Architecture():
     file = os.path.join("../../SEAS_Input/Atmosphere_Data/Atmosphere_Prototype/Example",
                          user_input["Prototype"]["Scenario_File"])
     
+     # Load Surface_Gravity, Base_TS_Value
+    user_input = load.load_Astrophysical_Properties(user_input)
+    
     # Loading TP_Profile, MR_Profile, Molecule List, 
     user_input = load.load_Atmosphere_Profile(user_input, source="Photochemistry", scenario_file=file)
     
-    # Hash created for identifying the xsec used for the TP profile
-    user_input["Data_IO"]["Hash"] = hashlib.sha224(str(user_input["Prototype"]["TP_Profile"]).encode()).hexdigest()[:8]
-    
-    # Load Surface_Gravity, Base_TS_Value
-    user_input = load.load_Astrophysical_Properties(user_input)
-    
     # Load absorption cross section for all molecule and effect (CIA, Cloud, etc)
-    user_input = load.load_Absorption_Cross_Section(user_input,False)
+    user_input = load.load_Absorption_Cross_Section(user_input,True)
     
     # Load Atmosphere model and generate theoretical spectra
     user_input = Generate_Atmosphere_Spectra(user_input)
@@ -298,7 +295,6 @@ def Forward_Model_Architecture():
     # Display the output result
     #display_output_spectra(user_input)
     
-
 
 if __name__ == "__main__":
     
