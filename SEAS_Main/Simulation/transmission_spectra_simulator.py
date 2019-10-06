@@ -13,15 +13,17 @@ class Transmission_Spectra_Simulator():
     
     def __init__(self,user_input):
         self.user_input = user_input
-    
+
     def load_atmosphere_geometry_model(self):
         
         # Loading all the respective data from dictionary into parameters
         prototype = self.user_input["Prototype"]
-        normalized_pressure         = np.array(prototype["TP_Profile"]["Normalized_Pressure"],dtype=float)
-        normalized_temperature      = np.array(prototype["TP_Profile"]["Normalized_Temperature"],dtype=float)
+        
+        
+        normalized_pressure         = np.array(prototype["Normalized_Pressure"],dtype=float)
+        normalized_temperature      = np.array(prototype["Normalized_Temperature"],dtype=float)
         normalized_molecules        = prototype["Molecule_List"]
-        normalized_abundance        = prototype["MR_Profile"]
+        normalized_abundance        = prototype["Normalized_MR_Profile"]
         normalized_scale_height     = prototype["Normalized_Scale_Height"]     
         
         nu                          = self.user_input["Xsec"]["nu"]
@@ -67,7 +69,7 @@ class Transmission_Spectra_Simulator():
                     molecular_ratio = normalized_abundance[molecule][cur]
                     number_density = (normalized_pressure[cur]/(BoltK*normalized_temperature[cur]))*molecular_ratio
                     rayleigh = normalized_rayleigh[molecule]*molecular_ratio
-                    sigma = normalized_cross_section[molecule][cur]*0.0001
+                    sigma = normalized_cross_section[molecule][cur]
         
                     # 2 because mirror other half of the atmosphere
                     # 0.0001 is convertion factor for xsec from cgs to SI

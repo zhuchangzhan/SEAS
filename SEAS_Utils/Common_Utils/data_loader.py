@@ -6,8 +6,7 @@ import numpy as np
 from numba import jit
 import matplotlib.pyplot as plt
 
-from scipy.interpolate import RegularGridInterpolator
-
+from scipy.interpolate import interp1d, RegularGridInterpolator
 
 DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
@@ -40,26 +39,58 @@ def load_Astrophysical_Properties(user_input):
     
     return user_input
 
-
-#@jit(nopython=True)
-
-@opt.timeit
-def load_Atmosphere_Profile(user_input,source,scenario_file=None):
-    """
-    Toggler for loading atmosphere profile, which includes:
-    1. TP Profile
-    2. MR Profile
-    
-    By Default is loading source from photochemistry code:
-    """
-    if source == "Photochemistry" and scenario_file != None:
+def load_atmosphere_pressure_layers(user_input):
         
-        # Create a Hash of the TP profile so that cross sections only need to be generated once per profile
-        # Some testing here or a better format is needed
-        return load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file)
-    else:
-        print("Not Implemented")
-        sys.exit()
+    Surface_Pressure = float(user_input["Atmosphere"]["Surface_Pressure"])
+    P_Cutoff         = float(user_input["Atmosphere"]["TS_P_Cut_Off"])
+
+    if Surface_Pressure == -1:
+        print("undefined surface pressure, set to 100000 Pa")
+        Surface_Pressure = 100000
+
+    normalized_pressure = []
+    P = Surface_Pressure
+    
+    while P > P_Cutoff:
+        normalized_pressure.append(float("%.3g"%P))
+        P = P*np.e**-(1./float(user_input["Atmosphere"]["Sub_Layers"]))
+        
+
+    return normalized_pressure
+
+def interpolate_atmosphere_profile(user_input):
+    """
+    This is a simplistic way of calculating the scale height... 
+    need to double check if much differ from the real way of doing this
+    may have some trouble for much higher up
+    """
+    
+    TP_Pressure         = user_input["Prototype"]["Input_Pressure"]
+    TP_Temperature      = user_input["Prototype"]["Input_Temperature"]
+    normalized_pressure = user_input["Prototype"]["Normalized_Pressure"]
+    
+    Molecule_List       = user_input["Prototype"]["Molecule_List"] 
+    MR_Profile          = user_input["Prototype"]["Input_MR_Profile"] 
+    
+    scale_height = user_input["Prototype"]["Input_Scale_Height"]
+    
+    assert np.log10(TP_Pressure)[0] < 100 and np.log10(TP_Pressure)[-1] > -100
+    
+    x = np.concatenate([[100],np.log10(TP_Pressure),[-100]])
+    y = np.concatenate([[TP_Temperature[0]],TP_Temperature,[TP_Temperature[-1]]])
+    z = np.concatenate([[scale_height[0]],scale_height,[scale_height[-1]]])
+    
+    normalized_MR_profile = MR_Profile.copy()
+    for molecule in Molecule_List:
+        profile = MR_Profile[molecule]
+        k = np.concatenate([[profile[0]],profile,[profile[-1]]])
+        normalized_MR_profile[molecule] = interp1d(x,k)(np.log10(normalized_pressure))
+    
+    user_input["Prototype"]["Normalized_Temperature"]  = interp1d(x,y)(np.log10(normalized_pressure))
+    user_input["Prototype"]["Normalized_Scale_Height"] = interp1d(x,z)(np.log10(normalized_pressure))
+    user_input["Prototype"]["Normalized_MR_Profile"]   = normalized_MR_profile
+
+    return user_input
 
 def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
     """
@@ -112,16 +143,49 @@ def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
             MR_Profile[str(l)] = (info/n_z)[:len(P_z)]
             Molecule_List.append(l)
 
-    user_input["Prototype"]["Molecule_List"] = Molecule_List
-    user_input["Prototype"]["MR_Profile"] = MR_Profile
-    user_input["Prototype"]["Normalized_Scale_Height"] = z_centers
-    user_input["Prototype"]["TP_Profile"]["Normalized_Pressure"] = P_z
-    user_input["Prototype"]["TP_Profile"]["Normalized_Temperature"] = T_z
+    user_input["Prototype"]["Molecule_List"]      = Molecule_List
+    user_input["Prototype"]["Input_MR_Profile"]   = MR_Profile
+    user_input["Prototype"]["Input_Scale_Height"] = z_centers
+    user_input["Prototype"]["Input_Pressure"]     = P_z
+    user_input["Prototype"]["Input_Temperature"]  = T_z
+    
+    
+    return user_input
+
+@opt.timeit
+def load_Atmosphere_Profile(user_input,source,scenario_file=None):
+    """
+    Toggler for loading atmosphere profile, which includes:
+    1. TP Profile
+    2. MR Profile
+    
+    By Default is loading source from photochemistry code:
+    """
+    
+    if source == "Photochemistry" and scenario_file != None:
+        # Create a Hash of the TP profile so that cross sections only need to be generated once per profile
+        # Some testing here or a better format is needed
+        user_input = load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file)
+    else:
+        print("Not Implemented")
+        sys.exit()
+        
+    # SEAS defined its own simulation layers that is different from photochemistry output
+    # This is to standarize simulation?
+    user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
+    user_input = interpolate_atmosphere_profile(user_input)
     
     return user_input
 
 @opt.timeit
 def load_Absorption_Cross_Section(user_input,reuse=True):
+
+    # Hash created for identifying the xsec used for the TP profile
+    # this is different for every user
+    a = str(user_input["Prototype"]["Normalized_Pressure"])
+    b = str(user_input["Prototype"]["Normalized_Temperature"])
+    user_input["Data_IO"]["Hash"] = hashlib.sha224((a+b).encode()).hexdigest()[:8]
+    
     
     # Load Absorption cross section
     info = Xsec_Loader(user_input,reuse)
@@ -133,8 +197,8 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
     user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
     user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
     user_input["Xsec"]["nu"]                = info.nu
+    
     return user_input
-
 
 class Xsec_Loader():
     """
@@ -148,9 +212,8 @@ class Xsec_Loader():
         self.user_input = user_input
         self.reuse = reuse
         
-        TP_Profile = user_input["Prototype"]["TP_Profile"]
-        self.normalized_pressure        = TP_Profile["Normalized_Pressure"]
-        self.normalized_temperature     = TP_Profile["Normalized_Temperature"]
+        self.normalized_pressure        = user_input["Prototype"]["Normalized_Pressure"]
+        self.normalized_temperature     = user_input["Prototype"]["Normalized_Temperature"]
         self.normalized_scale_height    = user_input["Prototype"]["Normalized_Scale_Height"]
         self.xsec = {}
         
@@ -170,11 +233,13 @@ class Xsec_Loader():
         savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/%s"%hash
         savename = savename or "%s_%s.npy"%(molecule,hash)
         filepath = os.path.join(savepath,savename)
+        
     
         if self.reuse and os.path.isfile(filepath):
             self.nu,self.xsec[molecule] = np.load(filepath)
             print("%s Cross Section Loaded"%molecule)
         else:
+            
             nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
             self.nu = np.array(nu["results"])
             
@@ -182,6 +247,9 @@ class Xsec_Loader():
             raw_cross_section_grid = np.array(xsec["results"])
              
             self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
+            
+            if not os.path.isdir(savepath):
+                os.makedirs(savepath)   
             np.save(filepath, [self.nu,self.xsec[molecule]])
             print("%s Cross Section Saved"%molecule)
 
@@ -226,7 +294,7 @@ class Xsec_Loader():
         normalized_cloud_xsec = []
         cloud_deck    = float(self.user_input["Xsec"]["Cloud"]["Deck"])
         cloud_opacity = float(self.user_input["Xsec"]["Cloud"]["Opacity"])
-        normalized_pressure = np.array(self.user_input["Prototype"]["TP_Profile"]["Normalized_Pressure"],dtype=float)
+        normalized_pressure = np.array(self.user_input["Prototype"]["Normalized_Pressure"],dtype=float)
         
         #c = Simple_Gray_Cloud_Simulator(cloud_deck,cloud_opacity)
         
