@@ -8,6 +8,7 @@ SEAS_Env/
 .DS_Store
 config/SEAS_ENV
 SEAS_Input/Cross_Section/
+!SEAS_Input/Cross_Section/HDF5_DB/*.hdf5
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
