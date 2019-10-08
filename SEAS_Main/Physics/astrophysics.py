@@ -29,6 +29,15 @@ sys.path.insert(0, os.path.join(DIR, '../..'))
 from SEAS_Utils.Common_Utils.constants import *
 from SEAS_Main.Physics.molecular_weight import calculate_mw
 
+def blackbody_lam(wav, T):
+    """ Blackbody as a function of wavelength (m) and temperature (K).
+    returns units of erg/s/cm^2/cm/Steradian
+    """
+    a = 2*HPlanck*CLight**2
+    b = HPlanck*CLight/(wav*BoltK*T)
+    intensity = a/((wav**5)*(np.exp(b)-1.0))
+    return intensity
+
 def planck(wav,T):
     """
     calculate the planck's blackbody intensity
