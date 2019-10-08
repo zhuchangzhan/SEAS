@@ -17,6 +17,7 @@ However, to use the full functionality of the code, including generating your ow
 will require creating your own absorption cross section database. 
 The code for this is under Example/...
 
-# Generating the Molecular Absorption Cross Section Database
-(This will take a very very long time. ~A few days and take up about 5GB of Storage)
+# Molecular Absorption Cross Section Database
+Absorption cross section are pre-generated and stored in SEAS_Input/ as hdf5 files
+
 
