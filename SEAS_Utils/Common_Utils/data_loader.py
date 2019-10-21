@@ -224,6 +224,7 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
 def load_Absorption_Cross_Section(user_input,reuse=True):
 
     info = Xsec_Loader(user_input,reuse)
+    user_input["Xsec"]["nu"]                = info.nu  
     
     if user_input["Prototype"]["Source"] == "Photochemistry":
         # Hash created for identifying the xsec used for the TP profile
@@ -240,14 +241,13 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
         # Load Rayleigh Scattering cross section
         user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
         user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
-        user_input["Xsec"]["nu"]                = info.nu
 
     elif user_input["Prototype"]["Source"] == "Boxcar":
         
         for molecule in user_input["Prototype"]["Molecule_List"]:
             info.load_HITRAN_single(molecule)
             user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
-        user_input["Xsec"]["nu"]                = info.nu   
+         
         
         
     return user_input
@@ -268,24 +268,28 @@ class Xsec_Loader():
         self.normalized_temperature     = user_input["Prototype"]["Normalized_Temperature"]
         
         
+        self.DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
         
+        nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
+        self.nu = np.array(nu["results"])
         self.xsec = {}
         
-        self.DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
-    
         # for interpolating the cross section
-        self.x = self.user_input["Xsec"]["Molecule"]["T_Grid"]
-        self.X = self.normalized_temperature 
+        # self.x = self.user_input["Xsec"]["Molecule"]["T_Grid"]
+        # self.X = self.normalized_temperature 
         
     def load_wavelength(self):
         pass
     
-    def load_HITRAN(self, molecule, savepath=None, savename=None):
+    def load_HITRAN(self, molecule, savepath=None, savename=None,cache=None):
         """
         Loading molecule cross section from database or precalculated
         interpolate cross section along pressure temperature profile
         # This step can be optimized for retrieval by only loading it once if TP profile doesn't change
         """
+        
+        if cache != None:
+            self.xsec[molecule] = cache
     
         hash = self.user_input["Data_IO"]["Hash"]
         savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/%s"%hash
@@ -298,10 +302,6 @@ class Xsec_Loader():
             if VERBOSE:
                 print("%s Cross Section Loaded"%molecule)
         else:
-            
-            nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
-            self.nu = np.array(nu["results"])
-            
             xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
             raw_cross_section_grid = np.array(xsec["results"])
              
@@ -313,9 +313,8 @@ class Xsec_Loader():
             if VERBOSE:
                 print("%s Cross Section Saved"%molecule)
         
-        
-
-    def load_HITRAN_single(self,molecule):
+    @opt.timeit
+    def load_HITRAN_single(self,molecule,cache=None):
         """
         Loading molecular cross section for given pressure and temperature
         Will have to be optimized when doing tp profile retrieval.
@@ -323,14 +322,12 @@ class Xsec_Loader():
         Don't even need to interpolate if matched temperature and pressure
         will see how long the interpolation takes, then judge.
         """
-        
-        nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
-        self.nu = np.array(nu["results"])
-        
+        if cache != None:
+            self.xsec[molecule] = cache
+    
         xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
-        raw_cross_section_grid = np.array(xsec["results"])
-            
-        self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
+        self.xsec[molecule] = self.grid_interpolate(np.array(xsec["results"]))
+
 
     def load_Exomol(self, molecule):
         
