@@ -174,8 +174,18 @@ def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
     
     return user_input
 
+def load_Atmosphere_Profile_from_Boxcar(user_input,Profile):
+    
+    user_input["Prototype"]["Molecule_List"]           = Profile["Molecule"].keys()
+    user_input["Prototype"]["Normalized_MR_Profile"]   = Profile["Molecule"]
+    user_input["Prototype"]["Normalized_Pressure"]     = Profile["Pressure"]
+    user_input["Prototype"]["Normalized_Temperature"]  = Profile["Temperature"]
+    
+    return user_input
+
+
 @opt.timeit
-def load_Atmosphere_Profile(user_input,source,scenario_file=None):
+def load_Atmosphere_Profile(user_input,scenario_file=None):
     """
     Toggler for loading atmosphere profile, which includes:
     1. TP Profile
@@ -184,42 +194,62 @@ def load_Atmosphere_Profile(user_input,source,scenario_file=None):
     By Default is loading source from photochemistry code:
     """
     
-    if source == "Photochemistry" and scenario_file != None:
+    source = user_input["Prototype"]["Source"]
+    
+    if scenario_file == None:
+        print("Not Implemented")
+        sys.exit()
+        
+    if source == "Photochemistry":
         # Create a Hash of the TP profile so that cross sections only need to be generated once per profile
         # Some testing here or a better format is needed
         user_input = load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file)
+        user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
+        user_input = interpolate_atmosphere_profile(user_input)
+        user_input = calculate_scale_height(user_input)
+        
+    elif source == "Boxcar":
+        user_input = load_Atmosphere_Profile_from_Boxcar(user_input,scenario_file)
+    
     else:
         print("Not Implemented")
         sys.exit()
         
     # SEAS defined its own simulation layers that is different from photochemistry output
     # This is to standarize simulation?
-    user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
-    user_input = interpolate_atmosphere_profile(user_input)
-    user_input = calculate_scale_height(user_input)
     
     return user_input
 
 @opt.timeit
 def load_Absorption_Cross_Section(user_input,reuse=True):
 
-    # Hash created for identifying the xsec used for the TP profile
-    # this is different for every user
-    a = str(user_input["Prototype"]["Normalized_Pressure"])
-    b = str(user_input["Prototype"]["Normalized_Temperature"])
-    user_input["Data_IO"]["Hash"] = hashlib.sha224((a+b).encode()).hexdigest()[:8]
-    
-    # Load Absorption cross section
     info = Xsec_Loader(user_input,reuse)
-    for molecule in user_input["Prototype"]["Molecule_List"]:
-        info.load_HITRAN(molecule)
-        user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
     
-    # Load Rayleigh Scattering cross section
-    user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
-    user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
-    user_input["Xsec"]["nu"]                = info.nu
-    
+    if user_input["Prototype"]["Source"] == "Photochemistry":
+        # Hash created for identifying the xsec used for the TP profile
+        # this is different for every user
+        a = str(user_input["Prototype"]["Normalized_Pressure"])
+        b = str(user_input["Prototype"]["Normalized_Temperature"])
+        user_input["Data_IO"]["Hash"] = hashlib.sha224((a+b).encode()).hexdigest()[:8]
+        
+        # Load Absorption cross section
+        for molecule in user_input["Prototype"]["Molecule_List"]:
+            info.load_HITRAN(molecule)
+            user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
+        
+        # Load Rayleigh Scattering cross section
+        user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
+        user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
+        user_input["Xsec"]["nu"]                = info.nu
+
+    elif user_input["Prototype"]["Source"] == "Boxcar":
+        
+        for molecule in user_input["Prototype"]["Molecule_List"]:
+            info.load_HITRAN_single(molecule)
+            user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
+        user_input["Xsec"]["nu"]                = info.nu   
+        
+        
     return user_input
 
 class Xsec_Loader():
@@ -236,7 +266,9 @@ class Xsec_Loader():
         
         self.normalized_pressure        = user_input["Prototype"]["Normalized_Pressure"]
         self.normalized_temperature     = user_input["Prototype"]["Normalized_Temperature"]
-        self.normalized_scale_height    = user_input["Prototype"]["Normalized_Scale_Height"]
+        
+        
+        
         self.xsec = {}
         
         self.DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
@@ -249,7 +281,11 @@ class Xsec_Loader():
         pass
     
     def load_HITRAN(self, molecule, savepath=None, savename=None):
-        # This step can be optimized for retrieval by only loading it once
+        """
+        Loading molecule cross section from database or precalculated
+        interpolate cross section along pressure temperature profile
+        # This step can be optimized for retrieval by only loading it once if TP profile doesn't change
+        """
     
         hash = self.user_input["Data_IO"]["Hash"]
         savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/%s"%hash
@@ -276,6 +312,25 @@ class Xsec_Loader():
             np.save(filepath, [self.nu,self.xsec[molecule]])
             if VERBOSE:
                 print("%s Cross Section Saved"%molecule)
+        
+        
+
+    def load_HITRAN_single(self,molecule):
+        """
+        Loading molecular cross section for given pressure and temperature
+        Will have to be optimized when doing tp profile retrieval.
+        This will work when only retrieving on mixing ratio.
+        Don't even need to interpolate if matched temperature and pressure
+        will see how long the interpolation takes, then judge.
+        """
+        
+        nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
+        self.nu = np.array(nu["results"])
+        
+        xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+        raw_cross_section_grid = np.array(xsec["results"])
+            
+        self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
 
     def load_Exomol(self, molecule):
         
@@ -316,8 +371,8 @@ class Xsec_Loader():
     def load_gray_cloud(self):
 
         normalized_cloud_xsec = []
-        cloud_deck    = float(self.user_input["Xsec"]["Cloud"]["Deck"])
-        cloud_opacity = float(self.user_input["Xsec"]["Cloud"]["Opacity"])
+        cloud_deck          = float(self.user_input["Xsec"]["Cloud"]["Deck"])
+        cloud_opacity       = float(self.user_input["Xsec"]["Cloud"]["Opacity"])
         normalized_pressure = np.array(self.user_input["Prototype"]["Normalized_Pressure"],dtype=float)
         
         #c = Simple_Gray_Cloud_Simulator(cloud_deck,cloud_opacity)

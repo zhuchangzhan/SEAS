@@ -214,7 +214,7 @@ def display_output_spectra(user_input):
 def Forward_Model_Architecture():
     
     global user_input
-    
+    user_input["Prototype"]["Source"]="Photochemistry"
     file = os.path.join("../../SEAS_Input/Atmosphere_Data/Atmosphere_Prototype/Example",
                          user_input["Prototype"]["Scenario_File"])
     
@@ -222,7 +222,7 @@ def Forward_Model_Architecture():
     user_input = load.load_Astrophysical_Properties(user_input)
     
     # Loading TP_Profile, MR_Profile, Molecule List, 
-    user_input = load.load_Atmosphere_Profile(user_input, source="Photochemistry", scenario_file=file)
+    user_input = load.load_Atmosphere_Profile(user_input, scenario_file=file)
     
     # Load absorption cross section for all molecule and effect (CIA, Cloud, etc)
     user_input = load.load_Absorption_Cross_Section(user_input,True)

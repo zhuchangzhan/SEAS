@@ -18,8 +18,8 @@ class Transmission_Spectra_Simulator():
         
         prototype = self.user_input["Prototype"]
         
-        boxcar_pressure             = 100000
-        boxcar_temperature          = 300
+        normalized_pressure         = float(prototype["Normalized_Pressure"][0])
+        normalized_temperature      = float(prototype["Normalized_Temperature"][0])
         boxcar_pathlength           = 1
         
         normalized_molecules        = prototype["Molecule_List"]
@@ -32,14 +32,16 @@ class Transmission_Spectra_Simulator():
         ChunkTau = np.zeros(len(nu))        
         for molecule in normalized_molecules:       
             
-            molecular_ratio = normalized_abundance[molecule]
+            molecular_ratio = normalized_abundance[molecule][0]
             number_density  = (normalized_pressure/(BoltK*normalized_temperature))*molecular_ratio
-            sigma           = normalized_cross_section[molecule]
+            sigma           = normalized_cross_section[molecule][0]
 
             # 0.0001 is convertion factor for xsec from cgs to SI
             ChunkTau += number_density*sigma*boxcar_pathlength*0.0001 
 
-        return nu,calc.calc_transmittance(ChunkTau) 
+
+        self.user_input["Spectra"]["Wavelength"] = nu
+        self.user_input["Spectra"]["Total_Transit_Signal"] = calc.calc_transmittance(ChunkTau) 
         
     def load_atmosphere_geometry_model(self):
         
