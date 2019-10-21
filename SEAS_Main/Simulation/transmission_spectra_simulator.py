@@ -14,6 +14,33 @@ class Transmission_Spectra_Simulator():
     def __init__(self,user_input):
         self.user_input = user_input
 
+    def load_boxcar_room_model(self):
+        
+        prototype = self.user_input["Prototype"]
+        
+        boxcar_pressure             = 100000
+        boxcar_temperature          = 300
+        boxcar_pathlength           = 1
+        
+        normalized_molecules        = prototype["Molecule_List"]
+        normalized_abundance        = prototype["Normalized_MR_Profile"]
+        
+        nu                          = self.user_input["Xsec"]["nu"]
+        normalized_cross_section    = self.user_input["Xsec"]["Molecule"]
+        normalized_rayleigh         = self.user_input["Xsec"]["Rayleigh"]["Value"]
+
+        ChunkTau = np.zeros(len(nu))        
+        for molecule in normalized_molecules:       
+            
+            molecular_ratio = normalized_abundance[molecule]
+            number_density  = (normalized_pressure/(BoltK*normalized_temperature))*molecular_ratio
+            sigma           = normalized_cross_section[molecule]
+
+            # 0.0001 is convertion factor for xsec from cgs to SI
+            ChunkTau += number_density*sigma*boxcar_pathlength*0.0001 
+
+        return nu,calc.calc_transmittance(ChunkTau) 
+        
     def load_atmosphere_geometry_model(self):
         
         # Loading all the respective data from dictionary into parameters
