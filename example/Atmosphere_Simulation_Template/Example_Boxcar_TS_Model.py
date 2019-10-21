@@ -30,13 +30,9 @@ VERBOSE = bool(user_input["Data_IO"]["Logging"]["VERBOSE"])
 def Generate_Atmosphere_Spectra(user_input):
     
     simulation = TS.Transmission_Spectra_Simulator(user_input)
-    simulation.load_boxcar_room_model()
-    
-    
-    
+    simulation.load_boxcar_model()
     return simulation.user_input
 
-    
 
 @opt.timeit
 def Forward_Boxcar_Model_Architecture():
@@ -66,8 +62,9 @@ def Forward_Boxcar_Model_Architecture():
     # Load Atmosphere model and generate theoretical spectra
     user_input = Generate_Atmosphere_Spectra(user_input)
     
-    plt.plot(user_input["Spectra"]["Wavelength"],
+    plt.plot(10000./user_input["Spectra"]["Wavelength"],
              user_input["Spectra"]["Total_Transit_Signal"])
+    plt.xscale("log")
     plt.show()
     
 

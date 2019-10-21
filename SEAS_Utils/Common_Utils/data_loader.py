@@ -328,7 +328,6 @@ class Xsec_Loader():
         xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
         self.xsec[molecule] = self.grid_interpolate(np.array(xsec["results"]))
 
-
     def load_Exomol(self, molecule):
         
         self.xsec = ["Exomol_%s not implemented"%molecule]

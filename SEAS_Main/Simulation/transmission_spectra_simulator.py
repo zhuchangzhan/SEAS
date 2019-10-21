@@ -14,7 +14,7 @@ class Transmission_Spectra_Simulator():
     def __init__(self,user_input):
         self.user_input = user_input
 
-    def load_boxcar_room_model(self):
+    def load_boxcar_model(self):
         
         prototype = self.user_input["Prototype"]
         
@@ -141,6 +141,7 @@ class Transmission_Spectra_Simulator():
                 else:
                     BeamTau += ChunkTau   
             
+            # This part need to be redone
             BeamTrans = calc.calc_transmittance(BeamTau) 
             effective_height = (1-BeamTrans)*normalized_scale_height[i]
             RingArea = (base_layer**2-prev_layer**2)/(float(self.user_input["Star"]["R_Star"])*R_Sun)**2
