@@ -29,7 +29,8 @@ class Transmission_Spectra_Simulator():
         normalized_cross_section    = self.user_input["Xsec"]["Molecule"]
         normalized_rayleigh         = self.user_input["Xsec"]["Rayleigh"]["Value"]
 
-        ChunkTau = np.zeros(len(nu))        
+        ChunkTau = np.zeros(len(nu))      
+        
         for molecule in normalized_molecules:       
             
             molecular_ratio = normalized_abundance[molecule][0]
@@ -42,6 +43,10 @@ class Transmission_Spectra_Simulator():
 
         self.user_input["Spectra"]["Wavelength"] = nu
         self.user_input["Spectra"]["Total_Transit_Signal"] = calc.calc_transmittance(ChunkTau) 
+        
+        
+        
+        
         
     def load_atmosphere_geometry_model(self):
         

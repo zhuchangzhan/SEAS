@@ -11,8 +11,8 @@ import hashlib
 from scipy import stats
 import matplotlib.pyplot as plt
 
-DIR = os.path.abspath(os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(DIR, '../..'))
+#ROOT = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../..')
+sys.path.insert(0, "../..")    
 
 from SEAS_Utils.Common_Utils.constants import *
 import SEAS_Utils.Common_Utils.configurable as config
@@ -24,6 +24,7 @@ from SEAS_Main.Physics.noise import Photon_Noise
 
 import pymc3 as pm
 import corner  # https://corner.readthedocs.io
+import theano
 import theano.tensor as tt
 from theano.compile.ops import as_op
 
@@ -32,7 +33,7 @@ VERBOSE = bool(user_input["Data_IO"]["Logging"]["VERBOSE"])
 
 
 #@as_op(itypes=[tt.lscalar], otypes=[tt.lscalar])
-def generate_spectra(user_input,logH2O,logCH4):
+def generate_spectra(bin_edges,user_input,logH2O,logCH4):
     
     
     H2O = pm.math.exp(logH2O)
@@ -57,9 +58,23 @@ def generate_spectra(user_input,logH2O,logCH4):
     simulation.load_boxcar_model()
     user_input = simulation.user_input
     
-    return user_input["Spectra"]["Total_Transit_Signal"]
+    #print(user_input["Spectra"]["Total_Transit_Signal"])
+    
+    x       = user_input["Spectra"]["Wavelength"]
+    true_y  = user_input["Spectra"]["Total_Transit_Signal"]
+    
+    print(type(true_y))
+    
+    sys.exit()
+    
+    
+    
+    true_y_bin, bin_edges, binnumber = stats.binned_statistic(10000./x[::-1], true_y[::-1], bins=bin_edges)
 
-def generate_spectra_std(user_input,logH2O,logCH4):
+    
+    return true_y_bin
+
+def generate_spectra_std(bin_edges,user_input,logH2O,logCH4):
     
     
     H2O = np.exp(logH2O)
@@ -84,7 +99,13 @@ def generate_spectra_std(user_input,logH2O,logCH4):
     simulation.load_boxcar_model()
     user_input = simulation.user_input
     
-    return user_input["Spectra"]["Total_Transit_Signal"]
+    x       = user_input["Spectra"]["Wavelength"]
+    true_y  = user_input["Spectra"]["Total_Transit_Signal"]
+    
+    true_y_bin, bin_edges, binnumber = stats.binned_statistic(10000./x[::-1], true_y[::-1], bins=bin_edges)
+
+    
+    return true_y_bin
 
 
 @opt.timeit
@@ -122,14 +143,27 @@ def Retrieval_Boxcar_Model_Architecture():
     
     x       = user_input["Spectra"]["Wavelength"]
     true_y  = user_input["Spectra"]["Total_Transit_Signal"]
-    y_noise = true_y + np.exp(true_logs)*np.random.randn(len(x))
+ 
     
-    """
-    plt.plot(10000./x,y_noise,".k",markersize=1)
-    plt.plot(10000./x,y,linewidth=1,alpha=0.5)
+    noise = Photon_Noise(user_input)
+    bin_edges, bin_width, bin_centers = noise.determine_bin()  
+    
+    true_y_bin, bin_edges, binnumber = stats.binned_statistic(10000./x[::-1], true_y[::-1], bins=bin_edges)
+
+    x_bin = bin_centers
+    
+    
+    y_noise = true_y_bin + np.exp(true_logs)*np.random.randn(len(bin_centers))
+    
+    
+    plt.plot(x_bin,y_noise,".k",markersize=1)
+    plt.plot(10000./x,true_y,linewidth=1,alpha=0.5)
+    
+    
     plt.xscale("log")
     plt.show()
-    """
+    
+    sys.exit()
     
     
     with pm.Model() as model:
@@ -139,7 +173,7 @@ def Retrieval_Boxcar_Model_Architecture():
         logs   = pm.Uniform("logs", lower=-5, upper=5)
         
         obs = pm.Normal("obs", 
-                        mu=generate_spectra(user_input,logH2O,logCH4), 
+                        mu=generate_spectra(bin_edges,user_input,logH2O,logCH4), 
                         sd=pm.math.exp(logs), 
                         observed=y_noise)
 
@@ -166,10 +200,10 @@ def Retrieval_Boxcar_Model_Architecture():
         
         xlogH2O,xlogCH4,xlogs = trace["logH2O"][i],trace["logCH4"][i],trace["logs"][i]
         
-        plt.plot(10000./x, generate_spectra_std(user_input,xlogH2O,xlogCH4)+ np.exp(xlogs)*np.random.randn(len(x)), color="C0", lw=1, alpha=0.3)
+        plt.plot(x_bin, generate_spectra_std(bin_edges,user_input,xlogH2O,xlogCH4)+ np.exp(xlogs)*np.random.randn(len(x_bin)), color="C0", lw=1, alpha=0.3)
     
-    plt.plot(10000./x, y_noise, 'x', label='data')
-    plt.plot(10000./x, true_y+ np.exp(true_logs)*np.random.randn(len(x)), label='true regression line', lw=1., c='r')
+    plt.plot(x_bin, y_noise, 'x', label='data')
+    plt.plot(x_bin, true_y_bin + np.exp(true_logs)*np.random.randn(len(x_bin)), label='true regression line', lw=1., c='r')
     plt.title('Posterior predictive regression lines')
     plt.legend(loc=0)
     plt.xlabel('x')
