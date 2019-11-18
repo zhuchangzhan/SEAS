@@ -215,6 +215,24 @@ def calc_cloud(height, nu):
     
     return np.zeros(len(nu))
     
+def calc_cloud_number_density(air_number_density = 1.225e-3, # molecule/cm^3
+                              particle_mixing_ratio = 4.62e-6, #in abs abundance
+                              particle_density = 4.09, # g/cm^3
+                              particle_radius = 1e-4): # cm
     
+    unit_particle_mass = particle_density*4/3*np.pi*particle_radius**3 #g
+    
+    particle_vapor_density = air_number_density*particle_mixing_ratio
+
+    particles_number_density = particle_vapor_density/unit_particle_mass
+    
+    # number of particles per cm^3
+    return particles_number_density
+def calculate_air_density(P,T,mean_air=28):
+    
+    k = 1.38e-23
+    R = 6.022e23
+    return P*mean_air/(k*T*R)*1e-6  #m^3 to cm^3
+        
     
     

@@ -5,7 +5,7 @@ import hashlib
 import numpy as np
 from numba import jit
 import matplotlib.pyplot as plt
-
+import miepython as mp
 from scipy.interpolate import interp1d, RegularGridInterpolator
 
 DIR = os.path.abspath(os.path.dirname(__file__))
@@ -105,12 +105,15 @@ def calculate_scale_height(user_input):
     profile_per_layer = np.array(normalized_MR_profile.values()).T
    
     normalized_scale_height = np.zeros(len(normalized_temperature))
+    normalized_mean_mw = np.zeros(len(normalized_temperature))
     for i,abundance_per_layer in enumerate(profile_per_layer):
         mean_mw      = calc.calc_MeanMolWeight(abundance_per_layer, molecular_weight_list)
         scale_height = calc.calc_H(normalized_temperature[i], mean_mw*mH, Surface_Gravity)
         normalized_scale_height[i] = scale_height
+        normalized_mean_mw[i] = mean_mw
       
     user_input["Prototype"]["Normalized_Scale_Height"] = normalized_scale_height
+    user_input["Prototype"]["normalized_mean_mw"] = normalized_mean_mw
     
     return user_input
     
@@ -240,8 +243,14 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
         
         # Load Rayleigh Scattering cross section
         user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
-        user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
-
+        
+        user_input["Xsec"]["Cloud"]["type"] = "mie"
+        if user_input["Xsec"]["Cloud"]["type"] == "grey":
+            user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
+        elif user_input["Xsec"]["Cloud"]["type"] == "mie":
+            user_input["Xsec"]["Cloud"]["Value"]    = info.load_mie_cloud()
+      
+        
     elif user_input["Prototype"]["Source"] == "Boxcar":
         
         for molecule in user_input["Prototype"]["Molecule_List"]:
@@ -381,16 +390,50 @@ class Xsec_Loader():
         print("Gray Cloud Loaded")
         return normalized_cloud_xsec   
 
+    def load_mie_cloud(self):
+        
+        normalized_cloud_xsec = []
+        normalized_pressure = np.array(self.user_input["Prototype"]["Normalized_Pressure"],dtype=float)
+        
+        # will update this to np version once testing is done
+        cloud_sigma = self.calculate_mie_cloud()
+        for i,P in enumerate(normalized_pressure):
+            normalized_cloud_xsec.append(cloud_sigma)
+        print("Mie Cloud Loaded")
+        
+        return normalized_cloud_xsec   
 
+    def calculate_mie_cloud(self):
+        
 
+        datafile = "../../SEAS_Input/Refractive_Index/ARIA/Acetylene Soot.txt"
+        data= np.genfromtxt(datafile)
+        
+        lam = data[:,0]
+        n   = data[:,1]
+        k   = data[:,2]
+        
+        m = n - 1j*k
+        
+        # 5% and 95% confidence at 50 and 130
+        # Assuming uniform particle radius as a function of height
+        # not much difference between 10 and 100. 
+        # if use 100, may want to output result to avoid duplicated calculations
+        radi = np.random.normal(0.89,0.025,10)
+        
+        extinct_xsec = np.zeros((len(radi),len(lam)))
+        for i,radius in enumerate(radi):
+            x = 2*np.pi*radius/lam
+            qext, qsca, qback, g = mp.mie(m,x)
+            ext_xsec = qext*np.pi*(radius/1e4)**2 # 1e4 is because um -> cm so that unit is 1/cm^2
+            extinct_xsec[i] = ext_xsec    
+        
+        cloud_sigma = np.mean(np.array(extinct_xsec),axis=0)
+        
+        xvals = np.linspace(1,25,12000)
+        cloud_sigmas = np.interp(xvals, lam, cloud_sigma)
 
-
-
-
-
-
-
-
+        return cloud_sigmas
 
 
 
