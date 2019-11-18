@@ -316,7 +316,6 @@ class Physical_Cloud_Simulator():
         """
 
 
-
 class Physical_Cloud_Simulator_new(Physical_Cloud_Simulator):
     
     def __init__(self, lambd):
@@ -438,7 +437,7 @@ class Physical_Cloud_Simulator_2():
         qratio=qb/qsca
         
         
-        return qext, qsca, qabs,asy
+        return qext, qsca, qabs, asy
 
     def calculate_cloud_xsec(self, info):
         
