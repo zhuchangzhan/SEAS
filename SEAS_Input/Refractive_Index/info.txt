@@ -1,0 +1,15 @@
+[References]
+n,k are taken directly from literature
+
+[ARIA]
+http://eodg.atm.ox.ac.uk/ARIA/search
+
+[HITRAN]
+ftp://cfa-ftp.harvard.edu/pub/HITRAN2012/Aerosols-2016/ascii/exoplanets/
+
+[Refractive Index Info]
+https://refractiveindex.info
+
+http://omlc.org/spectra/
+https://www.astro.uni-jena.de/Laboratory/Database/jpdoc/f-dbase.html
+
