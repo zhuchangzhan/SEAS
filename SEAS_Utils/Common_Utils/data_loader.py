@@ -244,10 +244,11 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
         # Load Rayleigh Scattering cross section
         user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
         
-        user_input["Xsec"]["Cloud"]["type"] = "mie"
+        # Load Cloud xsec
+        # This should always be loaded after the molecular xsec because it needs nu
         if user_input["Xsec"]["Cloud"]["type"] == "grey":
             user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
-        elif user_input["Xsec"]["Cloud"]["type"] == "mie":
+        elif user_input["Xsec"]["Cloud"]["type"] == "Mie":
             user_input["Xsec"]["Cloud"]["Value"]    = info.load_mie_cloud()
       
         
@@ -405,35 +406,33 @@ class Xsec_Loader():
 
     def calculate_mie_cloud(self):
         
-
-        datafile = "../../SEAS_Input/Refractive_Index/ARIA/Acetylene Soot.txt"
-        data= np.genfromtxt(datafile)
+        Source = self.user_input["Xsec"]["Cloud"]["Source"]
         
-        lam = data[:,0]
-        n   = data[:,1]
-        k   = data[:,2]
+        lam, n, k = np.genfromtxt("../../SEAS_Input/Refractive_Index/%s"%Source).T
         
+        # The miepython module takes the imaginary as negative
         m = n - 1j*k
         
-        # 5% and 95% confidence at 50 and 130
-        # Assuming uniform particle radius as a function of height
-        # not much difference between 10 and 100. 
-        # if use 100, may want to output result to avoid duplicated calculations
-        radi = np.random.normal(0.89,0.025,10)
+        mean_radius = float(self.user_input["Xsec"]["Cloud"]["Mean_Radius"])
+        std         = float(self.user_input["Xsec"]["Cloud"]["Standard_Deviation"])
+        sample      = int(self.user_input["Xsec"]["Cloud"]["Sample_Size"])
         
-        extinct_xsec = np.zeros((len(radi),len(lam)))
-        for i,radius in enumerate(radi):
+        # draws 10 sample. Not much difference between 10 and 100. 
+        # if use 100, may want to output result to avoid duplicated calculations
+        radii = np.random.normal(mean_radius,std,sample)
+        
+        extinct_xsec = np.zeros((len(radii),len(lam)))
+        for i,radius in enumerate(radii):
             x = 2*np.pi*radius/lam
             qext, qsca, qback, g = mp.mie(m,x)
-            ext_xsec = qext*np.pi*(radius/1e4)**2 # 1e4 is because um -> cm so that unit is 1/cm^2
-            extinct_xsec[i] = ext_xsec    
+            extinct_xsec[i] = qext*np.pi*(radius/1e4)**2 # 1e4 is because um -> cm so that unit is 1/cm^2    
         
+        # calculate the cross section given the data
         cloud_sigma = np.mean(np.array(extinct_xsec),axis=0)
-        
-        xvals = np.linspace(1,25,12000)
-        cloud_sigmas = np.interp(xvals, lam, cloud_sigma)
 
-        return cloud_sigmas
+        # Return the cross section interpolated to self.nu
+        # This may fail if not in interpolation range
+        return np.interp(self.nu, lam, cloud_sigma)
 
 
 

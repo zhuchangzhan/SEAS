@@ -49,6 +49,11 @@ class Transmission_Spectra_Simulator():
         
         # Loading all the respective data from dictionary into parameters
         prototype = self.user_input["Prototype"]
+        Cloud     = self.user_input["Xsec"]["Cloud"]["Enable"] == "True"  # bool("False") returns True so... 
+        CIA       = self.user_input["Xsec"]["CIA"]["Enable"]   == "True"
+        
+        Bio_Molecules               = prototype["Bio_Molecule_List"]
+        Particle_Ratio              = float(self.user_input["Xsec"]["Cloud"]["Particle_Ratio"])
         
         normalized_pressure         = np.array(prototype["Normalized_Pressure"],dtype=float)
         normalized_temperature      = np.array(prototype["Normalized_Temperature"],dtype=float)
@@ -71,7 +76,7 @@ class Transmission_Spectra_Simulator():
         base_layer           = float(self.user_input["Planet"]["R_Planet"])*R_Earth
         
         # this need to be parameterized
-        Cloud, CIA = True,False
+        
         for i in range(TotalBeams):
             
             if i == 0:
@@ -83,16 +88,14 @@ class Transmission_Spectra_Simulator():
     
             # opacity per beam
             BeamTau = []
-            
             prev_pathl = 0
             target_layer = base_layer    
-            
             
             for j in range(TotalBeams-i):
                 cur = j+i
                 
                 target_layer += normalized_scale_height[cur]
-                pathl = np.sin(np.arccos(base_layer/target_layer))*target_layer - prev_pathl
+                pathl = np.sin(np.arccos(base_layer/target_layer))*target_layer - prev_pathl # m
                 prev_pathl += pathl   
                 
                 mean_mw = normalized_mean_mw[cur]
@@ -100,29 +103,30 @@ class Transmission_Spectra_Simulator():
                 T_cur = normalized_temperature[cur]  
                 
                 # opacity per chunk of the beam, this can be thought as the test tube case
+                # In the future this part will be spinned out as its seperate function
+                # So that it's shared between each type of models
                 ChunkTau = []   
-                haze_source_mr = []     
+                haze_source_mr = {}     
                 for molecule in normalized_molecules:    
-                    if molecule == "PH3":
-                        haze_source_mr = normalized_abundance[molecule][cur]
+                    if molecule in Bio_Molecules:
+                        haze_source_mr[molecule] = normalized_abundance[molecule][cur]*Particle_Ratio
                     
                     #weird how abundance and cross section are wired differently
                     molecular_ratio = normalized_abundance[molecule][cur]
-                    number_density = (P_cur/(BoltK*T_cur))*molecular_ratio
+                    number_density = (P_cur/(BoltK*T_cur))*molecular_ratio*1e-6 # molc/m^3 -> molc/cm^3
                     rayleigh = normalized_rayleigh[molecule]*molecular_ratio
                     sigma = normalized_cross_section[molecule][cur] #cm^2/molc
                     
                     # 2 because mirror other half of the atmosphere
                     # 0.0001 is convertion factor for xsec from cgs to SI
-                    # cm^2/molc * molc/m^3 -> m^-1
-                    ChunkTau_Per_Molecule = number_density*(sigma+rayleigh)*0.0001 *pathl*2
+                    # cm^2/molc * molc/cm^3 -> cm^-1
+                    ChunkTau_Per_Molecule = number_density*(sigma+rayleigh)*pathl*100*2
         
                     if ChunkTau == []:
                         ChunkTau = ChunkTau_Per_Molecule
                     else:
                         ChunkTau += ChunkTau_Per_Molecule 
                 
-
                 """
                 if CIA:
                     for k,CIA_data in enumerate(normalized_CIA):
@@ -142,31 +146,25 @@ class Transmission_Spectra_Simulator():
                 # Simulating cloud
                 if Cloud:
                     
-                    # load cloud cross section
-                    cloud_sigma = normalized_cloud_xsec[cur] # cm^2/particle
+                    for molecule in Bio_Molecules:
                     
-                    rho_air = calc.calculate_air_density(P_cur,T_cur,mean_mw)
-                    haze_amount = 1e-3#haze_source_mr
-                    haze_mw = 1.5
-                    radi = np.random.normal(0.89,0.025,10) # See data loader
-                    r_haze = np.mean(radi)*1e-4 # radi from um to cm
+                        # Load cloud particle number density
+                        air_rho     = calc.calculate_air_density(P_cur,T_cur,mean_mw)*1e-6  #m^3 to cm^3
+                        haze_ratio  = haze_source_mr[molecule] # this is a unitless scaling factor
+                        haze_rho    = float(self.user_input["Xsec"]["Cloud"]["Particle_Density"]) # g/cm^3
+                        haze_radius = float(self.user_input["Xsec"]["Cloud"]["Mean_Radius"])*1e-4 # radi from um to cm
+                        particle_number_density = calc.calc_cloud_number_density(air_rho,haze_ratio,haze_rho,haze_radius)  # particle/cm^3
+                        
+                        # load cloud cross section
+                        cloud_sigma = normalized_cloud_xsec[cur] # cm^2/particle
+                        
+                        # cm^2/particle * particle/cm^3 -> cm^-1
+                        ChunkTau_Per_Cloud = cloud_sigma*particle_number_density*pathl*100*2
+                        
+                        ChunkTau += ChunkTau_Per_Cloud
                     
-                    particles_number_density = calc.calc_cloud_number_density(rho_air,
-                                                                         haze_amount,
-                                                                         haze_mw,
-                                                                         r_haze)  # particle/cm^3
-                    particles_number_density_SI = particles_number_density*1e6
-                    # 0.0001 is conversion factor for xsec from cgs to SI
-                    # cm^2/particle * particle/m^3 -> m^-1
-                    ChunkTau_Per_Cloud = cloud_sigma*particles_number_density*0.0001*pathl*2
-                    
-                    
-                    ChunkTau += ChunkTau_Per_Cloud
-                    
-                    print(np.max(ChunkTau_Per_Cloud))
-                    
-                   # grey cloud to be added back later
-                   #ChunkTau+= normalized_cloud_xsec[cur]
+                    # grey cloud to be added back later
+                    #ChunkTau+= normalized_cloud_xsec[cur]
                     
                 # Sum up all the absorption along the beam 
                 if BeamTau == []:
@@ -183,13 +181,12 @@ class Transmission_Spectra_Simulator():
             Total_Transit_Signal += Ring_Transit_Signal
             Atmosphere_Height += effective_height
             
-            
             # update to the next beam up
             prev_layer = base_layer
             base_layer += normalized_scale_height[i]        
         
-        self.user_input["Spectra"]["Wavelength"] = nu
-        self.user_input["Spectra"]["Atmosphere_Height"] = Atmosphere_Height
+        self.user_input["Spectra"]["Wavelength"]           = nu
+        self.user_input["Spectra"]["Atmosphere_Height"]    = Atmosphere_Height
         self.user_input["Spectra"]["Total_Transit_Signal"] = Total_Transit_Signal
         
         

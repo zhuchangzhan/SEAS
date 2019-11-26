@@ -58,7 +58,8 @@ def Simulate_Atmosphere_Observation(user_input):
     T_Star      = float(user_input["Star"]["T_Star"])
     Distance    = float(user_input["System"]["D_Star_Observer"])*Psec  
     
-    R_obs       = float(user_input["Telescope"]["Aperture"])
+    D_obs       = float(user_input["Telescope"]["Aperture"])
+    R_obs       = D_obs/2
     Duration    = float(user_input["Telescope"]["Duration"])*3600. # hr to second
     Quantum     = float(user_input["Telescope"]["Quantum_Efficiency"])
     Noise_M     = float(user_input["Telescope"]["Noise"]["multiplier"])
@@ -226,8 +227,18 @@ def Forward_Model_Architecture():
     
     global user_input
     
-    user_input["Xsec"]["Cloud"]["type"] == "mie"
-    user_input["Prototype"]["Source"]="Photochemistry"
+    # Assuming uniform particle radius as a function of height
+    # 5% and 95% confidence at 50 and 130
+    user_input["Xsec"]["Cloud"]["type"]               = "Mie"
+    user_input["Xsec"]["Cloud"]["Source"]             = "ARIA/Acetylene_Soot_Dalzell_1969.txt"
+    user_input["Xsec"]["Cloud"]["Particle_Ratio"]     = 0.001 # assuming that 10% of molecule goes into haze.
+    user_input["Xsec"]["Cloud"]["Particle_Density"]   = 1.5
+    user_input["Xsec"]["Cloud"]["Mean_Radius"]        = 0.89/2  # micron
+    user_input["Xsec"]["Cloud"]["Standard_Deviation"] = 0.025/2
+    
+    user_input["Prototype"]["Source"]                 = "Photochemistry"
+    user_input["Prototype"]["Bio_Molecule_List"]      = ["PH3"]
+    
     file = os.path.join("../../SEAS_Input/Atmosphere_Data/Atmosphere_Prototype/Example",
                          user_input["Prototype"]["Scenario_File"])
     
