@@ -1,3 +1,5 @@
+
+
 """
 Here is a construction site for building SEAS.
 Will have to clean up once finished
@@ -25,6 +27,7 @@ from SEAS_Main.Physics.noise import Photon_Noise
 
 user_input = config.Configuration("../../config/user_input.cfg")
 VERBOSE = bool(user_input["Data_IO"]["Logging"]["VERBOSE"])
+
 
 @opt.timeit
 def Generate_Atmosphere_Spectra(user_input):
@@ -58,7 +61,8 @@ def Simulate_Atmosphere_Observation(user_input):
     T_Star      = float(user_input["Star"]["T_Star"])
     Distance    = float(user_input["System"]["D_Star_Observer"])*Psec  
     
-    R_obs       = float(user_input["Telescope"]["Aperture"])
+    D_obs       = float(user_input["Telescope"]["Aperture"])
+    R_obs       = D_obs/2
     Duration    = float(user_input["Telescope"]["Duration"])*3600. # hr to second
     Quantum     = float(user_input["Telescope"]["Quantum_Efficiency"])
     Noise_M     = float(user_input["Telescope"]["Noise"]["multiplier"])
@@ -71,10 +75,81 @@ def Simulate_Atmosphere_Observation(user_input):
     E_Total     = B_Body*Bin_width*A_Star*Psi_Tele*Duration
     star_photon = (E_Total*bin_centers*10**-6)/(HPlanck*CLight)*Quantum
     
-    signal = R_Planet**2/R_Star**2*star_photon
-    photon_noise = Noise_M*np.sqrt(star_photon)
+    user_input["Spectra"]["Signal"] = R_Planet**2/R_Star**2*star_photon
+    user_input["Spectra"]["Noise"]  = Noise_M*np.sqrt(star_photon)
+    user_input["Spectra"]["SNR"]    = user_input["Spectra"]["Signal"]/user_input["Spectra"]["Noise"]
     
-    SNR = signal/photon_noise
+    return user_input
+
+
+def cal_binned_SNR(nu, bio_depth,bio_transit_depth_bin,b_SNR_bio,b_ATM_SNR_bio):
+
+    #plt.plot(10000./nu,(bio_depth-ref_depth)*1e6)
+    #plt.plot(b_wav,b_SNR_bio)
+    #plt.plot(b_wav,b_SNR_ref)
+    
+    flat_line_a = []
+    flat_line_b = []
+    flat_line_c = []
+    
+    for wavs,val in zip(10000./nu,bio_depth):
+        if wavs >= 1 and wavs < 5:
+            flat_line_a.append(val)
+        if wavs >= 5 and wavs < 12:
+            flat_line_b.append(val)
+        if wavs >= 12:
+            flat_line_c.append(val)
+    
+    mean_atmosphere_radius_per_wavelength = bio_transit_depth_bin
+    standard_error_atmosphere_radius_per_wavelength = bio_transit_depth_bin/b_SNR_bio
+    
+    a,b,c = 33, 18, 15
+    
+    mean_atmosphere_radius_a = np.average(flat_line_a)
+    mean_atmosphere_radius_b = np.average(flat_line_b)
+    mean_atmosphere_radius_c = np.average(flat_line_c)
+    
+    mean_atmosphere_radius_ = np.array([mean_atmosphere_radius_a,
+                               mean_atmosphere_radius_b,
+                               mean_atmosphere_radius_c])
+                                        
+    
+    standard_error_atmosphere_radius_ = np.array(mean_atmosphere_radius_)/b_ATM_SNR_bio
+    
+    # extrapolated for subtraction
+    mean_atmosphere_radius = np.concatenate([mean_atmosphere_radius_a*np.ones(a),
+                                             mean_atmosphere_radius_b*np.ones(b),
+                                             mean_atmosphere_radius_c*np.ones(c)])
+    ATM_SNR_a,ATM_SNR_b,ATM_SNR_c = b_ATM_SNR_bio
+    ATM_SNR = np.concatenate([ATM_SNR_a*np.ones(a),
+                              ATM_SNR_b*np.ones(b),
+                              ATM_SNR_c*np.ones(c)])
+    
+    standard_error_atmosphere_radius = mean_atmosphere_radius/ATM_SNR
+    
+    
+    atm_diff = mean_atmosphere_radius_per_wavelength-mean_atmosphere_radius
+    atm_error = np.sqrt(standard_error_atmosphere_radius_per_wavelength**2+standard_error_atmosphere_radius**2)
+    
+    
+    Max_SNR = np.max(abs((atm_diff)/atm_error))
+    
+    
+    return Max_SNR,mean_atmosphere_radius_per_wavelength,standard_error_atmosphere_radius_per_wavelength,mean_atmosphere_radius_,standard_error_atmosphere_radius_,atm_diff,atm_error
+    
+@opt.timeit
+def display_output_spectra(user_input):
+    
+    signal          = user_input["Spectra"]["Signal"]
+    photon_noise    = user_input["Spectra"]["Noise"]
+    SNR             = user_input["Spectra"]["SNR"]
+
+    convolved_Height = user_input["Spectra"]["bin_values"]
+    R_Planet         = float(user_input["Planet"]["R_Planet"])*R_Earth
+    R_Star           = float(user_input["Star"]["R_Star"])*R_Sun
+    bin_centers      = user_input["Spectra"]["bin_centers"]
+    D_atmosphere     = user_input["Spectra"]["D_atmosphere"]
+    nu               = user_input["Spectra"]["nu"]
     
     a_sig,b_sig,c_sig = [],[],[]
     a_noise,b_noise,c_noise = [],[],[]
@@ -91,69 +166,13 @@ def Simulate_Atmosphere_Observation(user_input):
             c_noise.append(noise)
             
     SNR_Broad = [np.sum(a_sig)/np.sqrt(np.sum(np.array(a_noise)**2)),
-               np.sum(b_sig)/np.sqrt(np.sum(np.array(b_noise)**2)),
-               np.sum(c_sig)/np.sqrt(np.sum(np.array(c_noise)**2))]
+                 np.sum(b_sig)/np.sqrt(np.sum(np.array(b_noise)**2)),
+                 np.sum(c_sig)/np.sqrt(np.sum(np.array(c_noise)**2))]
     
     ref_depth = (convolved_Height+R_Planet)**2/R_Star**2
     ref_depth_bin = (D_atmosphere+R_Planet)**2/R_Star**2
 
-
-    def cal_binned_SNR(bio_depth,bio_transit_depth_bin,b_SNR_bio,b_ATM_SNR_bio):
-
-        #plt.plot(10000./nu,(bio_depth-ref_depth)*1e6)
-        #plt.plot(b_wav,b_SNR_bio)
-        #plt.plot(b_wav,b_SNR_ref)
-        
-        flat_line_a = []
-        flat_line_b = []
-        flat_line_c = []
-        
-        for wavs,val in zip(10000./nu,bio_depth):
-            if wavs >= 1 and wavs < 5:
-                flat_line_a.append(val)
-            if wavs >= 5 and wavs < 12:
-                flat_line_b.append(val)
-            if wavs >= 12:
-                flat_line_c.append(val)
-        
-        mean_atmosphere_radius_per_wavelength = bio_transit_depth_bin
-        standard_error_atmosphere_radius_per_wavelength = bio_transit_depth_bin/b_SNR_bio
-        
-        a,b,c = 33, 18, 15
-        
-        mean_atmosphere_radius_a = np.average(flat_line_a)
-        mean_atmosphere_radius_b = np.average(flat_line_b)
-        mean_atmosphere_radius_c = np.average(flat_line_c)
-        
-        mean_atmosphere_radius_ = np.array([mean_atmosphere_radius_a,
-                                   mean_atmosphere_radius_b,
-                                   mean_atmosphere_radius_c])
-                                            
-        
-        standard_error_atmosphere_radius_ = np.array(mean_atmosphere_radius_)/b_ATM_SNR_bio
-        
-        # extrapolated for subtraction
-        mean_atmosphere_radius = np.concatenate([mean_atmosphere_radius_a*np.ones(a),
-                                                 mean_atmosphere_radius_b*np.ones(b),
-                                                 mean_atmosphere_radius_c*np.ones(c)])
-        ATM_SNR_a,ATM_SNR_b,ATM_SNR_c = b_ATM_SNR_bio
-        ATM_SNR = np.concatenate([ATM_SNR_a*np.ones(a),
-                                  ATM_SNR_b*np.ones(b),
-                                  ATM_SNR_c*np.ones(c)])
-        
-        standard_error_atmosphere_radius = mean_atmosphere_radius/ATM_SNR
-        
-        
-        atm_diff = mean_atmosphere_radius_per_wavelength-mean_atmosphere_radius
-        atm_error = np.sqrt(standard_error_atmosphere_radius_per_wavelength**2+standard_error_atmosphere_radius**2)
-        
-        
-        Max_SNR = np.max(abs((atm_diff)/atm_error))
-        
-        
-        return Max_SNR,mean_atmosphere_radius_per_wavelength,standard_error_atmosphere_radius_per_wavelength,mean_atmosphere_radius_,standard_error_atmosphere_radius_,atm_diff,atm_error
-
-    result = cal_binned_SNR(ref_depth,ref_depth_bin,SNR,SNR_Broad)
+    result = cal_binned_SNR(nu,ref_depth,ref_depth_bin,SNR,SNR_Broad)
     ATM_Max_SNR_ref,a,b,c,d,atm_diff_ref,atm_error_ref = result
 
     mean_atmosphere_radius_per_wavelength_ref = a
@@ -197,17 +216,6 @@ def Simulate_Atmosphere_Observation(user_input):
                 bottom=True, top=True, left=True, right=True)  
     ax1.set_xlabel('Wavelength ($\mu$m)', fontsize=16)
     
-
-    plt.show()
-    
-@opt.timeit
-def display_output_spectra(user_input):
-    
-    x = user_input["Spectra"]["Wavelength"]
-    y = user_input["Spectra"]["Atmosphere_Height"]
-    
-    plt.xscale("log")
-    plt.plot(10000./x,y)
     plt.show()
     
 @opt.timeit
@@ -234,7 +242,7 @@ def Forward_Model_Architecture():
     user_input = Simulate_Atmosphere_Observation(user_input)
     
     # Display the output result
-    #display_output_spectra(user_input)
+    display_output_spectra(user_input)
     
 
 if __name__ == "__main__":
