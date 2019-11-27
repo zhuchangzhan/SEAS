@@ -571,7 +571,6 @@ class TS_Simulator():
             nref = Pref/(BoltK*Tref)
             lref = 0.05        
 
-
             y1 = np.array(y1)+(1-(np.mean(y1)+np.median(y1))/2)
             y1new = []
             for i in y1:
@@ -581,14 +580,9 @@ class TS_Simulator():
                     y1new.append(i)
             y1 = y1new     
             
-            
-            
-            
             # interpolation
             yinterp = biosig_interpolate(x1,y1,self.nu,"T")
             sigma = -np.log(yinterp)/(nref*lref)*10000  # multiply by a factor of 10000 due to unit conversion
-        
-            
         
             # need to know how to scale cross sections
             X = self.normalized_pressure        

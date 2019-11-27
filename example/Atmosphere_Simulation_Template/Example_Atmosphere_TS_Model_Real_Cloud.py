@@ -221,6 +221,7 @@ def Forward_Model_Architecture():
     
     # Assuming uniform particle radius as a function of height
     # 5% and 95% confidence at 50 and 130
+    user_input["Xsec"]["Cloud"]["Enable"]             = "True"
     user_input["Xsec"]["Cloud"]["type"]               = "Mie"
     user_input["Xsec"]["Cloud"]["Source"]             = "ARIA/Acetylene_Soot_Dalzell_1969.txt"
     user_input["Xsec"]["Cloud"]["Particle_Ratio"]     = 0.001 # assuming that 10% of molecule goes into haze.
@@ -250,8 +251,14 @@ def Forward_Model_Architecture():
     user_input = Simulate_Atmosphere_Observation(user_input)
     
     # Display the output result
-    display_output_spectra(user_input)
+    #display_output_spectra(user_input)
     
+    nu = user_input["Spectra"]["nu"]
+    flux1 = user_input["Spectra"]["bin_values"]
+    
+    plt.plot(10000./nu,flux1)
+    plt.xscale("log")
+    plt.show()
 
 if __name__ == "__main__":
     

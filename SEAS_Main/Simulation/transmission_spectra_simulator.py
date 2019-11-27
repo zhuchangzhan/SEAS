@@ -1,3 +1,4 @@
+
 import os
 import sys
 import numpy as np
@@ -52,6 +53,7 @@ class Transmission_Spectra_Simulator():
         Cloud     = self.user_input["Xsec"]["Cloud"]["Enable"] == "True"  # bool("False") returns True so... 
         CIA       = self.user_input["Xsec"]["CIA"]["Enable"]   == "True"
         
+        
         Bio_Molecules               = prototype["Bio_Molecule_List"]
         Particle_Ratio              = float(self.user_input["Xsec"]["Cloud"]["Particle_Ratio"])
         
@@ -66,6 +68,7 @@ class Transmission_Spectra_Simulator():
         normalized_cross_section    = self.user_input["Xsec"]["Molecule"]
         normalized_rayleigh         = self.user_input["Xsec"]["Rayleigh"]["Value"]
         normalized_cloud_xsec       = self.user_input["Xsec"]["Cloud"]["Value"]
+        
         
         TotalBeams           = len(normalized_pressure)
         Total_Tau            = np.zeros(len(nu))

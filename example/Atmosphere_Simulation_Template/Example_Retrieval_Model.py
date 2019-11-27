@@ -58,7 +58,8 @@ def Simulate_Atmosphere_Observation(user_input):
     T_Star      = float(user_input["Star"]["T_Star"])
     Distance    = float(user_input["System"]["D_Star_Observer"])*Psec  
     
-    R_obs       = float(user_input["Telescope"]["Aperture"])
+    D_obs       = float(user_input["Telescope"]["Aperture"])
+    R_obs       = D_obs/2
     Duration    = float(user_input["Telescope"]["Duration"])*3600. # hr to second
     Quantum     = float(user_input["Telescope"]["Quantum_Efficiency"])
     Noise_M     = float(user_input["Telescope"]["Noise"]["multiplier"])

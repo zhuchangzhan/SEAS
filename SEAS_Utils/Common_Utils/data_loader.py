@@ -308,18 +308,27 @@ class Xsec_Loader():
         
     
         if self.reuse and os.path.isfile(filepath):
-            self.nu,self.xsec[molecule] = np.load(filepath)
+            self.nu,self.xsec[molecule] = np.load(filepath) #self.nu doesn't need to be loaded again
             if VERBOSE:
                 print("%s Cross Section Loaded"%molecule)
         else:
-            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
-            raw_cross_section_grid = np.array(xsec["results"])
-             
-            self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
+            try: # This is a temporary solution to add isoprene
+                xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+                raw_cross_section_grid = np.array(xsec["results"])
+                self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
+            except:
+                xsec = self.load_PNNL(molecule)
+                wave = len(self.nu)
+                layer = len(self.normalized_pressure)
+                normalized_xsec = np.zeros((layer,wave))
+                for i in range(layer):
+                    normalized_xsec[i] = xsec
+                self.xsec[molecule] = normalized_xsec
+                print("loaded %s from NIST"%molecule)
             
             if not os.path.isdir(savepath):
                 os.makedirs(savepath)   
-            np.save(filepath, [self.nu,self.xsec[molecule]])
+            np.save(filepath, [self.nu,self.xsec[molecule]]) # no need to save self.nu,?
             if VERBOSE:
                 print("%s Cross Section Saved"%molecule)
         
@@ -344,8 +353,59 @@ class Xsec_Loader():
             
     def load_NIST(self, molecule):
         
-        self.xsec = ["NIST_%s not implemented"%molecule] 
+        x1,y1 = load_NIST_spectra(bio_molecule,["wn","T"],True)
+        
+        Pref = 10000.
+        Tref = 300.        
+        nref = Pref/(BoltK*Tref)
+        lref = 0.05        
 
+        y1 = np.array(y1)+(1-(np.mean(y1)+np.median(y1))/2)
+        y1new = []
+        for i in y1:
+            if i > 1:
+                y1new.append(1)
+            else:
+                y1new.append(i)
+        y1 = y1new     
+        
+        # interpolation
+        yinterp = np.interp(self.nu,x1,y1)
+        xsec = -np.log(yinterp)/(nref*lref)*10000  # multiply by a factor of 10000 due to unit conversion
+    
+        
+        
+        return xsec 
+
+    def load_PNNL(self, molecule):
+        
+        datapath = "../../SEAS_Input/Cross_Section/HITRAN_Xsec/isoprene/C5-H8_298.1K-760.0K_600.0-6500.0_0.11_N2_505_43.xsc"
+        
+        file = open(datapath,"r").read().split("\n")
+        
+        header = file[0]
+        headerinfo = header.split()
+        
+        numin   = headerinfo[1]
+        numax   = headerinfo[2]
+        npts    = headerinfo[3]
+        T       = headerinfo[4]
+        P       = headerinfo[5]
+        maxres  = headerinfo[6]
+        molecule= headerinfo[7]
+        broaden = headerinfo[8]
+        note    = headerinfo[9]
+        max = maxres[:-5]
+        res = maxres[-5:]
+        
+        
+        ylist = np.array(np.concatenate([i.split() for i in file[1:]]),dtype=float)
+        xlist = np.linspace(float(numin),float(numax),len(ylist))
+        yinterp = np.interp(self.nu,xlist,ylist)
+        
+        return yinterp
+        
+    
     @opt.timeit
     def grid_interpolate(self,xsec_grid):
         
@@ -429,10 +489,10 @@ class Xsec_Loader():
         
         # calculate the cross section given the data
         cloud_sigma = np.mean(np.array(extinct_xsec),axis=0)
-
         # Return the cross section interpolated to self.nu
-        # This may fail if not in interpolation range
-        return np.interp(self.nu, lam, cloud_sigma)
+        # This only works in linear?
+        
+        return np.interp(10000./self.nu, lam, cloud_sigma)
 
 
 
