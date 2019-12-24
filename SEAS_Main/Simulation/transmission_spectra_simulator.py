@@ -79,7 +79,7 @@ class Transmission_Spectra_Simulator():
         base_layer           = float(self.user_input["Planet"]["R_Planet"])*R_Earth
         
         # this need to be parameterized
-        
+        Cloud = False
         for i in range(TotalBeams):
             
             if i == 0:
@@ -111,7 +111,7 @@ class Transmission_Spectra_Simulator():
                 ChunkTau = []   
                 haze_source_mr = {}     
                 for molecule in normalized_molecules:    
-                    if molecule in Bio_Molecules:
+                    if molecule in Bio_Molecules and Cloud:
                         haze_source_mr[molecule] = normalized_abundance[molecule][cur]*Particle_Ratio
                     
                     #weird how abundance and cross section are wired differently
@@ -157,6 +157,7 @@ class Transmission_Spectra_Simulator():
                         haze_rho    = float(self.user_input["Xsec"]["Cloud"]["Particle_Density"]) # g/cm^3
                         haze_radius = float(self.user_input["Xsec"]["Cloud"]["Mean_Radius"])*1e-4 # radi from um to cm
                         particle_number_density = calc.calc_cloud_number_density(air_rho,haze_ratio,haze_rho,haze_radius)  # particle/cm^3
+                        
                         
                         # load cloud cross section
                         cloud_sigma = normalized_cloud_xsec[cur] # cm^2/particle

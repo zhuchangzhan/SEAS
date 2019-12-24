@@ -88,7 +88,6 @@ def interpolate_atmosphere_profile(user_input):
         k = np.concatenate([[profile[0]],profile,[profile[-1]]])
         normalized_MR_profile[molecule] = interp1d(x,k)(np.log10(normalized_pressure))
     
-    
     user_input["Prototype"]["Normalized_Temperature"]  = interp1d(x,y)(np.log10(normalized_pressure))
     user_input["Prototype"]["Normalized_MR_Profile"]   = normalized_MR_profile
 
@@ -117,7 +116,7 @@ def calculate_scale_height(user_input):
     
     return user_input
     
-def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
+def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,Profile):
     """
     generate mixing ratio profile from renyu's simulation
     
@@ -141,7 +140,7 @@ def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
         key_species2num[species_name]=species_number #Holds mapping FROM species name TO species number
         key_num2species[species_number]=species_name #Holds mapping FROM species number TO species name
     
-    output_data=np.genfromtxt(scenario_file, skip_header=2, skip_footer=0, unpack=False, encoding='ascii') 
+    output_data=np.genfromtxt(Profile, skip_header=2, skip_footer=0, unpack=False, encoding='ascii') 
 
     z_centers=output_data[:,0]*km2m # Center of altitude bins, km converted to cm
     z_lower=output_data[:,1]*km2m # Lower edge of altitude bins, km converted to cm
@@ -162,15 +161,14 @@ def load_Atmosphere_Profile_from_Photochemistry_Code(user_input,scenario_file):
         
     MR_Profile = {}
     Molecule_List = []
-    for j,info in enumerate(n_z_species.T):
-        l = key_num2species[j+1]
+    for i,info in enumerate(n_z_species.T):
+        l = key_num2species[i+1]
         if max(info/n_z) > float(user_input["Prototype"]["Threshold"]): #default is 10**-7
             MR_Profile[str(l)] = (info/n_z)[:len(P_z)]
             Molecule_List.append(l)
 
     user_input["Prototype"]["Molecule_List"]      = Molecule_List
     user_input["Prototype"]["Input_MR_Profile"]   = MR_Profile
-    user_input["Prototype"]["Input_Scale_Height"] = z_centers
     user_input["Prototype"]["Input_Pressure"]     = P_z
     user_input["Prototype"]["Input_Temperature"]  = T_z
     
@@ -186,6 +184,37 @@ def load_Atmosphere_Profile_from_Boxcar(user_input,Profile):
     
     return user_input
 
+def load_Atmosphere_Profile_from_CCM(user_input,Profile):
+    
+    Molecule_List = user_input["Prototype"]["Source_Header"]
+    output_data   = np.genfromtxt(Profile, unpack=False, encoding='ascii') 
+
+    P_z = output_data[:,0][::-1]*100  # hPa to Pa, also reverse the order so that it is from bottom up
+    T_z = output_data[:,1][::-1]
+    n_z_species = np.flip(output_data[:,2:],0)
+    n_z=np.sum(n_z_species,1)
+    
+    # Truncating the TP profile by imposing a pressure cutoff
+    # The flat spectra problem could be due to the fact that the lowest pressure is 0.03 Pa
+    category  = user_input["Spectra"]["Category"]
+    threshold = float(user_input["Atmosphere"]["%s_P_Cut_Off"%category])
+    accepted  = len([x for x in P_z if x > threshold])
+    P_z = P_z[:accepted]
+    T_z = T_z[:accepted]
+    
+    # This is a hacky thing that needs to be changed
+    T_z = [x if x < 400 else 400 for x in T_z]
+
+    MR_Profile = {}
+    for molecule,data in zip(Molecule_List,n_z_species.T):
+        MR_Profile[molecule] = (data/n_z)[:len(P_z)]
+
+    user_input["Prototype"]["Molecule_List"]      = Molecule_List
+    user_input["Prototype"]["Input_MR_Profile"]   = MR_Profile
+    user_input["Prototype"]["Input_Pressure"]     = P_z
+    user_input["Prototype"]["Input_Temperature"]  = T_z
+    
+    return user_input
 
 @opt.timeit
 def load_Atmosphere_Profile(user_input,scenario_file=None):
@@ -213,6 +242,14 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
         
     elif source == "Boxcar":
         user_input = load_Atmosphere_Profile_from_Boxcar(user_input,scenario_file)
+        
+
+    elif source == "CCM":
+        user_input = load_Atmosphere_Profile_from_CCM(user_input,scenario_file)
+        user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
+        user_input = interpolate_atmosphere_profile(user_input)
+        user_input = calculate_scale_height(user_input)
+        
     
     else:
         print("Not Implemented")
@@ -226,10 +263,12 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
 @opt.timeit
 def load_Absorption_Cross_Section(user_input,reuse=True):
 
+
     info = Xsec_Loader(user_input,reuse)
     user_input["Xsec"]["nu"]                = info.nu  
     
-    if user_input["Prototype"]["Source"] == "Photochemistry":
+    
+    if user_input["Prototype"]["Source"] in ["Photochemistry","CCM"]:
         # Hash created for identifying the xsec used for the TP profile
         # this is different for every user
         a = str(user_input["Prototype"]["Normalized_Pressure"])
@@ -258,8 +297,6 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
             info.load_HITRAN_single(molecule)
             user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
          
-        
-        
     return user_input
 
 class Xsec_Loader():
@@ -273,6 +310,7 @@ class Xsec_Loader():
     def __init__(self, user_input,reuse=True):
         self.user_input = user_input
         self.reuse = reuse
+        
         
         self.normalized_pressure        = user_input["Prototype"]["Normalized_Pressure"]
         self.normalized_temperature     = user_input["Prototype"]["Normalized_Temperature"]
@@ -306,17 +344,21 @@ class Xsec_Loader():
         savename = savename or "%s_%s.npy"%(molecule,hash)
         filepath = os.path.join(savepath,savename)
         
-    
         if self.reuse and os.path.isfile(filepath):
             self.nu,self.xsec[molecule] = np.load(filepath) #self.nu doesn't need to be loaded again
             if VERBOSE:
                 print("%s Cross Section Loaded"%molecule)
         else:
-            try: # This is a temporary solution to add isoprene
+            if True:
+                print(molecule)
+            #try: # This is a temporary solution to add isoprene
                 xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
                 raw_cross_section_grid = np.array(xsec["results"])
                 self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
-            except:
+            else:
+            #except:
+                # need to package and modularize this
+                # Also change the name of load hitran to load xsec
                 xsec = self.load_PNNL(molecule)
                 wave = len(self.nu)
                 layer = len(self.normalized_pressure)
@@ -405,7 +447,6 @@ class Xsec_Loader():
         
         return yinterp
         
-    
     @opt.timeit
     def grid_interpolate(self,xsec_grid):
         
@@ -418,6 +459,7 @@ class Xsec_Loader():
         wave = len(self.nu)
         layer = len(self.normalized_pressure)
         normalized_xsec = np.zeros((layer,wave))
+        
         for i,(P_E,T_E) in enumerate(zip(np.log10(self.normalized_pressure),self.normalized_temperature)):
             normalized_xsec[i] = f(np.array([np.ones(wave)*P_E, np.ones(wave)*T_E, self.nu]).T)
             
@@ -491,6 +533,7 @@ class Xsec_Loader():
         cloud_sigma = np.mean(np.array(extinct_xsec),axis=0)
         # Return the cross section interpolated to self.nu
         # This only works in linear?
+        
         
         return np.interp(10000./self.nu, lam, cloud_sigma)
 
