@@ -1,3 +1,4 @@
+
 old_*/
 A.Progress/
 A.Projects/
@@ -9,6 +10,7 @@ SEAS_Env/
 config/SEAS_ENV
 SEAS_Input/Cross_Section/*
 !SEAS_Input/Cross_Section/HDF5_DB
+SEAS_Input/Line_List/HITRAN_Line_List
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
