@@ -538,8 +538,26 @@ class Xsec_Loader():
         return np.interp(10000./self.nu, lam, cloud_sigma)
 
 
+# Saved for later development
+def main_molecule_selector(molecule, 
+                           preference_order=["Exomol","HITRAN_Lines","HITRAN_Xsec","NIST"],
+                           auxillary=True):
+    """
+    Due to our data coming from multiple sources, we need a way to automatically   
+    select which molecule gets used in the simulation.
+    """
 
-
+    for preference in preference_order:
+        
+        if preference == "Exomol":
+            pass
+        elif preference == "HITRAN_Lines":
+            pass
+        elif preference == "HITRAN_Xsec":
+            pass
+        elif preference == "NIST":
+            pass
+            
 
 
 
