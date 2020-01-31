@@ -249,7 +249,7 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
         user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
         user_input = interpolate_atmosphere_profile(user_input)
         user_input = calculate_scale_height(user_input)
-        
+    
     
     else:
         print("Not Implemented")
@@ -294,9 +294,13 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
     elif user_input["Prototype"]["Source"] == "Boxcar":
         
         for molecule in user_input["Prototype"]["Molecule_List"]:
+            print(molecule)
             info.load_HITRAN_single(molecule)
             user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
          
+                
+        
+        
     return user_input
 
 class Xsec_Loader():
@@ -387,7 +391,11 @@ class Xsec_Loader():
             self.xsec[molecule] = cache
     
         xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+        
+        
         self.xsec[molecule] = self.grid_interpolate(np.array(xsec["results"]))
+        
+        
 
     def load_Exomol(self, molecule):
         
@@ -462,7 +470,7 @@ class Xsec_Loader():
         
         for i,(P_E,T_E) in enumerate(zip(np.log10(self.normalized_pressure),self.normalized_temperature)):
             normalized_xsec[i] = f(np.array([np.ones(wave)*P_E, np.ones(wave)*T_E, self.nu]).T)
-            
+        
         return normalized_xsec
 
     def load_rayleigh_scattering(self,molecules):
@@ -565,4 +573,5 @@ def main_molecule_selector(molecule,
 
     
     
+
 

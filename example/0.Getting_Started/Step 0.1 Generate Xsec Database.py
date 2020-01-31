@@ -67,7 +67,7 @@ import SEAS_Main.Cross_Section.Cross_Section_Calculator as csc
 from SEAS_Main.Cross_Section.HITRAN_Match import HITRAN_Match
 
 
-sys.stdout = open('redirect.txt', 'w')
+
     
 def generate_cross_section():
     """
@@ -76,20 +76,23 @@ def generate_cross_section():
 
     wn_bin = [[200,400,0.1],[400,2000,0.4],[2000,10000,2],[10000,30000,10]]
     
+    nu_ = np.concatenate([np.arange(x[0],x[1],x[2]) for x in wn_bin])
+
     T_Grid = csc.calculate_temperature_layers(T_Min=100, T_Max=800, Step=25)
     P_Grid = csc.calculate_pressure_layers(P_surface = 1e5,P_Cutoff = 1e-5)
     
-    print(T_Grid)
-    print(P_Grid)
     
-    molecule = "CO2"
+    molecule = "NO"
+    print(molecule)
     component = [HITRAN_Match[molecule],1,1]
     
     d_path = "../../SEAS_Input/Line_List/HITRAN_Line_List/%s"%molecule
     r_path = "../../SEAS_Input/Cross_Section/HDF5_New"
+
+    
     
     xsec_grid = [[[] for y in range(len(P_Grid))] for x in range(len(T_Grid))]
-    
+    sys.stdout = open('redirect.txt', 'w')
     for i in trange(len(wn_bin), desc='wn bin', leave=True):
         numin,numax,step = wn_bin[i]
         nu_std = np.arange(numin,numax,step)
@@ -108,11 +111,21 @@ def generate_cross_section():
             
             #[float("%.4g"%x) for x in np.log10(data["results"][j][i])]
     
+    plt.plot(nu_,xsec_grid[0][0])
+    plt.show()
+    
     hdf5_store = h5py.File(os.path.join(r_path,"%s.hdf5"%molecule), "w")
     hdf5_store.create_dataset("results", data=xsec_grid,compression="gzip",compression_opts=9)
     hdf5_store.close()
     
-
+def compress_cross_section():
+    
+    input = h5py.File("CO2.hdf5", "r")
+    xsec_grid = input["results"]
+    
+    hdf5_store = h5py.File("CO2_new.hdf5", "w")
+    hdf5_store.create_dataset("results", data=xsec_grid,compression="gzip",compression_opts=9)
+    hdf5_store.close()
     
 
     

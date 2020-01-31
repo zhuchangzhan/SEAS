@@ -125,6 +125,8 @@ class Photon_Noise():
         
         bin_edges,bin_width,bin_centers = [],[],[]
         
+        
+        
         i=0
         lambda_current = lambda_init
         bin_edges.append(lambda_current)

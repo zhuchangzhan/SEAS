@@ -71,7 +71,7 @@ class cross_section_calculator():
         self.step  = step
 
         hp.db_begin(self.d_path)
-        hp.fetch(molecule,self.m,self.i,numin,numax)
+        hp.fetch(molecule,self.n,self.m,numin,numax)
         #hp.select(molecule,ParameterNames=("nu","sw"), Conditions=("between","nu",float(self.numin),float(self.numax)))
     
     def hapi_calculator(self,P=1.,T=300.,gamma="gamma_self",cross=True):
