@@ -331,7 +331,10 @@ class Xsec_Loader():
         # self.X = self.normalized_temperature 
         
     def load_wavelength(self):
-        pass
+        
+        self.wave = 10000./self.nu
+        
+        return self.wave
     
     def load_HITRAN(self, molecule, savepath=None, savename=None,cache=None):
         """
@@ -395,7 +398,11 @@ class Xsec_Loader():
         
         self.xsec[molecule] = self.grid_interpolate(np.array(xsec["results"]))
         
+    def load_HITRAN_raw_grid(self,molecule):
         
+        xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+        
+        return xsec["results"]
 
     def load_Exomol(self, molecule):
         
