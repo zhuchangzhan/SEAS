@@ -46,7 +46,6 @@ class Transmission_Spectra_Simulator():
         self.user_input["Spectra"]["Total_Transit_Signal"] = calc.calc_transmittance(ChunkTau) 
         
         y = np.array(calc.calc_transmittance(ChunkTau))
-        
                 
     def load_atmosphere_geometry_model(self):
         
@@ -55,7 +54,8 @@ class Transmission_Spectra_Simulator():
         Cloud     = self.user_input["Xsec"]["Cloud"]["Enable"] == "True"  # bool("False") returns True so... 
         CIA       = self.user_input["Xsec"]["CIA"]["Enable"]   == "True"
         
-        
+        # The parameter for biomolecules need to be better defined when there is no biosignature. 
+        # Ie if one just want a atmosphere and not a comparison.
         Bio_Molecules               = prototype["Bio_Molecule_List"]
         Particle_Ratio              = float(self.user_input["Xsec"]["Cloud"]["Particle_Ratio"])
         
@@ -71,6 +71,27 @@ class Transmission_Spectra_Simulator():
         normalized_rayleigh         = self.user_input["Xsec"]["Rayleigh"]["Value"]
         normalized_cloud_xsec       = self.user_input["Xsec"]["Cloud"]["Value"]
         
+        # this need to be better implemented
+        if self.user_input["turnoff"] == None:
+            pass
+        else:
+            normalized_cross_section[self.user_input["turnoff"]] = np.zeros((24,12000))
+        
+        """
+        # fix or move this to somewhere else
+        for molecule in normalized_molecules:
+            if molecule != "HNO3":
+                normalized_cross_section[molecule] = np.zeros((24,12000))
+        
+        for molecule in normalized_rayleigh:
+            normalized_rayleigh[molecule] = np.zeros(12000)
+            
+        import matplotlib.pyplot as plt
+        for i in normalized_cross_section["HNO3"]:
+            plt.plot(i)
+        plt.yscale("log")
+        plt.show()
+        """
         
         TotalBeams           = len(normalized_pressure)
         Total_Tau            = np.zeros(len(nu))

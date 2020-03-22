@@ -36,7 +36,7 @@ DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
 
 from SEAS_Utils.Common_Utils.constants import *
-import SEAS_Utils.External_Utils.hapi as hp 
+
 
 def convolve_spectra():
     pass
@@ -154,6 +154,8 @@ class Photon_Noise():
         return self.bin_edges, self.bin_width, self.bin_centers
 
     def calculate_convolve(self, nu, trans):
+        
+        import SEAS_Utils.External_Utils.hapi as hp 
         #if self.user_input["Observation"]["Convolve"] == "true":
         amount = int(self.user_input["Spectra"]["convolve_amount"])
         nu,Transit_Signal,i1,i2,slit = hp.convolveSpectrum(nu,trans,SlitFunction=hp.SLIT_RECTANGULAR,Resolution=10,AF_wing=20.0)

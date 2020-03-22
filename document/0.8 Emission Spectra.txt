@@ -1,0 +1,19 @@
+========================================
+
+SEAS 0.8 Emission Port
+
+========================================
+
+upgrade emission simulation from 0.7 to 0.8 standard
+
+
+1. Locate old emission files
+2. prep name space
+3. new code implementation
+4. Testing
+5. Howard case.
+
+------------------------------
+
+
+------------------------------

@@ -38,9 +38,17 @@ def blackbody_lam(wav, T):
     intensity = a/((wav**5)*(np.exp(b)-1.0))
     return intensity
 
+def blackbody_nu(wn,T): # nu is frequency (Hz) , T is temperature (K)
+    """ 
+    Blackbody as a function of wavenumber (cm^-1) and temperature (K).
+    """
+    nu = wn*3e10 # convert wavenumber to frequency
+    return (2*h*nu**3/c**2)*(1/(np.exp((h*nu)/(k*T))-1))
+
 def planck(wav,T):
     """
     calculate the planck's blackbody intensity
+    redundant with blackbody_lam?
     """
     return (2*HPlanck*c/wav**3)*(1/(np.exp((HPlanck*c)/(wav*BoltK*T))-1))
 
@@ -58,9 +66,6 @@ def calc_H(Temperature, MeanMolWeight, SurfaceG, r=2):
     """
     calculate atmospheric scale height
     """
-    
-    #print MeanMolWeight,SurfaceG
-    
     
     return round((BoltK*Temperature)/(MeanMolWeight*SurfaceG),r)
 
