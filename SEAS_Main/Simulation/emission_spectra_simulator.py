@@ -144,8 +144,6 @@ class Emission_Spectra_Simulator():
         
         turnoff = self.user_input["turnoff"]
         
-        
-        
         def calc_tau(C,T,P):
             
             tau_cur_layer = np.zeros(len(nu))
@@ -174,7 +172,7 @@ class Emission_Spectra_Simulator():
             else:
                 Layer_Intensity[C] = calc.blackbody_nu(nu,normalized_temperature[C])*(1-np.exp(-tau_prev_layer))
         
-            for j in layer_count[:C]:
+            for j in layer_count[:C+1]:
                 Layer_Intensity[j] *= np.exp(-tau_cur_layer)
             
             tau_prev_layer = tau_cur_layer

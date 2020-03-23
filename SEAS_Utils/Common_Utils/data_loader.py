@@ -20,6 +20,27 @@ import SEAS_Utils.Common_Utils.interpolation as interp
 
 VERBOSE = False
 
+
+def multi_column_file_loader(path,spliter=None,type="float",skip=0):
+    """
+    load data from files that contains multiple columns
+    """
+    
+    with open(path) as data_file:   
+        data = [x.split(spliter) for x in data_file.read().split("\n")[skip:]]
+        if data[-1] == [] or data[-1] == None or data[-1] == "":
+            data = data[:-1]
+        
+        
+        data = [list(x) for x  in zip(*data)]    
+        
+        if type == "float":
+            return np.array(data,dtype=np.float)
+        elif type == "int":
+            return np.array(data,dtype=np.int)
+        elif type == "mixed":
+            return data
+
 @opt.timeit
 def load_Observation_Data(user_input):
     return
@@ -73,7 +94,6 @@ def interpolate_atmosphere_profile(user_input):
     TP_Pressure         = user_input["Prototype"]["Input_Pressure"]
     TP_Temperature      = user_input["Prototype"]["Input_Temperature"]
     normalized_pressure = user_input["Prototype"]["Normalized_Pressure"]
-    
     Molecule_List       = user_input["Prototype"]["Molecule_List"] 
     MR_Profile          = user_input["Prototype"]["Input_MR_Profile"] 
     
@@ -81,6 +101,7 @@ def interpolate_atmosphere_profile(user_input):
     
     x = np.concatenate([[100],np.log10(TP_Pressure),[-100]])
     y = np.concatenate([[TP_Temperature[0]],TP_Temperature,[TP_Temperature[-1]]])
+    
     
     normalized_MR_profile = MR_Profile.copy()
     for molecule in Molecule_List:
@@ -216,6 +237,37 @@ def load_Atmosphere_Profile_from_CCM(user_input,Profile):
     
     return user_input
 
+def load_Atmosphere_Profile_from_Earth(user_input):
+    
+    
+    
+    MR_File = "../../SEAS_Input/Atmosphere_Data/MR_Profile/earth.txt"
+    TP_File = "../../SEAS_Input/Atmosphere_Data/TP_profile/earth.txt"
+    
+    data = multi_column_file_loader(MR_File,type="mixed")
+    
+    Molecule_List = []
+    MR_Profile    = {}
+    for i in data[1:]:
+        molecule = i[0]
+        Molecule_List.append(molecule)
+        MR_Profile[molecule] = [float(x)/100. for x in i[1:]]
+
+    MR_pressure = [float(x) for x in data[0][1:]]
+    
+    P,T = np.genfromtxt(TP_File).T
+ 
+    MR_temperature = interp1d(np.log10(P),T)(np.log10(MR_pressure))
+ 
+ 
+    user_input["Prototype"]["Molecule_List"]      = Molecule_List
+    user_input["Prototype"]["Input_MR_Profile"]   = MR_Profile
+    user_input["Prototype"]["Input_Pressure"]     = MR_pressure
+    user_input["Prototype"]["Input_Temperature"]  = MR_temperature
+    
+
+    return user_input
+
 @opt.timeit
 def load_Atmosphere_Profile(user_input,scenario_file=None):
     """
@@ -243,13 +295,17 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
     elif source == "Boxcar":
         user_input = load_Atmosphere_Profile_from_Boxcar(user_input,scenario_file)
         
+    elif source == "Earth":
+        user_input = load_Atmosphere_Profile_from_Earth(user_input)
+        user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
+        user_input = interpolate_atmosphere_profile(user_input)
+        user_input = calculate_scale_height(user_input)
 
     elif source == "CCM":
         user_input = load_Atmosphere_Profile_from_CCM(user_input,scenario_file)
         user_input["Prototype"]["Normalized_Pressure"] = load_atmosphere_pressure_layers(user_input)
         user_input = interpolate_atmosphere_profile(user_input)
         user_input = calculate_scale_height(user_input)
-    
     
     else:
         print("Not Implemented")
@@ -268,7 +324,7 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
     user_input["Xsec"]["nu"]                = info.nu  
     
     
-    if user_input["Prototype"]["Source"] in ["Photochemistry","CCM"]:
+    if user_input["Prototype"]["Source"] in ["Photochemistry","CCM","Earth"]:
         # Hash created for identifying the xsec used for the TP profile
         # this is different for every user
         a = str(user_input["Prototype"]["Normalized_Pressure"])
