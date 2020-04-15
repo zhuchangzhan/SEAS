@@ -62,62 +62,55 @@ warnings.filterwarnings("ignore")
 DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
 
+import SEAS_Utils.Common_Utils.configurable as config
 import SEAS_Main.Cross_Section.Cross_Section_Calculator as csc
 
 from SEAS_Main.Cross_Section.HITRAN_Match import HITRAN_Match
 
 
-
-    
-def generate_cross_section():
+def test_generate_cross_section():
     """
-    Known issue: using higher resolution hitran nu is not the same as np.arange(numin,numax,step).    
+    test cross section generation with simplistic inputs
     """
-
+    # this is better, will be used for new xsec database
     wn_bin = [[200,400,0.1],[400,2000,0.4],[2000,10000,2],[10000,30000,10]]
     
+    # this is to be consistent with old database
+    wn_bin = [[400,2000,0.4],[2000,10000,2],[10000,30000,5]]
+    
+    
     nu_ = np.concatenate([np.arange(x[0],x[1],x[2]) for x in wn_bin])
-
-    T_Grid = csc.calculate_temperature_layers(T_Min=100, T_Max=800, Step=25)
-    P_Grid = csc.calculate_pressure_layers(P_surface = 1e5,P_Cutoff = 1e-5)
     
+    #T_Grid = csc.calculate_temperature_layers(T_Min=100, T_Max=800, Step=25)
+    #P_Grid = csc.calculate_pressure_layers(P_surface = 1e5,P_Cutoff = 1e-5)
+    user_input = config.Configuration("../../config/user_input.cfg")
+    T_Grid = user_input["Xsec"]["Molecule"]["T_Grid"]
+    P_Grid = user_input["Xsec"]["Molecule"]["P_Grid"]
     
-    molecule = "NO"
-    print(molecule)
+    molecule = "HNO3"
     component = [HITRAN_Match[molecule],1,1]
     
     d_path = "../../SEAS_Input/Line_List/HITRAN_Line_List/%s"%molecule
     r_path = "../../SEAS_Input/Cross_Section/HDF5_New"
 
-    
-    
-    xsec_grid = [[[] for y in range(len(P_Grid))] for x in range(len(T_Grid))]
-    sys.stdout = open('redirect.txt', 'w')
-    for i in trange(len(wn_bin), desc='wn bin', leave=True):
-        numin,numax,step = wn_bin[i]
-        nu_std = np.arange(numin,numax,step)
-        xsec_calc = csc.cross_section_calculator(d_path,r_path,molecule,component,numin,numax,step)
-        data = [[0 for y in range(len(P_Grid))] for x in range(len(T_Grid))]
-        for i in trange(len(T_Grid),desc="Temperature"):
-            T = T_Grid[i]
-            for j in trange(len(P_Grid),desc="Pressure   "):
-                P = P_Grid[j]
-                #print("Generated %s xsec from %s to %s at T: %s and P: %s"%(molecule,numin,numax,P,T))
-                nu,sigma = xsec_calc.hapi_calculator(P,T)
-                data[i][j] = np.interp(nu_std,nu,sigma)
-        xsec_grid = np.concatenate([xsec_grid,data],2)
-        os.remove(os.path.join(d_path,"%s.header"%molecule))
-        os.remove(os.path.join(d_path,"%s.data"%molecule))
+
+    P = 0.001
+    T = 300
+    for i in wn_bin:
+        try:
+            numin,numax,step = i
+            xsec_calc = csc.cross_section_calculator(d_path,r_path,molecule,component,numin,numax,step)
+            nu,sigma = xsec_calc.hapi_calculator(P,T)
+            plt.plot(nu,sigma)
+            os.remove(os.path.join(d_path,"%s.header"%molecule))
+            os.remove(os.path.join(d_path,"%s.data"%molecule))
             
-            #[float("%.4g"%x) for x in np.log10(data["results"][j][i])]
-    
-    plt.plot(nu_,xsec_grid[0][0])
-    plt.show()
-    
-    hdf5_store = h5py.File(os.path.join(r_path,"%s.hdf5"%molecule), "w")
-    hdf5_store.create_dataset("results", data=xsec_grid,compression="gzip",compression_opts=9)
-    hdf5_store.close()
-    
+            plt.show()
+        except Exception as e:
+            print(e)
+        except:
+            print("unknown")
+            
 def compress_cross_section():
     
     input = h5py.File("CO2.hdf5", "r")
@@ -126,11 +119,120 @@ def compress_cross_section():
     hdf5_store = h5py.File("CO2_new.hdf5", "w")
     hdf5_store.create_dataset("results", data=xsec_grid,compression="gzip",compression_opts=9)
     hdf5_store.close()
+
+def examine_old_nu():
+
+    DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
+        
+    nu = h5py.File("%s/%s.hdf5"%(DB_DIR,"nu"), "r")
+    nu = np.array(nu["results"])
+    
+    plt.plot(nu)
+    
+    wn_bin = [[200,400,0.1],[400,2000,0.4],[2000,10000,2],[10000,30000,10]]
+    
+    wn_bin = [[400,2000,0.4],[2000,10000,2],[10000,30000,5]]
+    
+    nu_ = np.concatenate([np.arange(x[0],x[1],x[2]) for x in wn_bin])
+    
+    plt.plot(nu_)
+    plt.show()
+        
+def generate_cross_section_molecule(molecule):
+    """
+    generate cross section for a given molecule
+    
+    Known issue: using higher resolution hitran nu is not the same as np.arange(numin,numax,step).    
+    """
+    
+    component = [HITRAN_Match[molecule],1,1]
+
+    # this is better, will be used for new xsec database
+    wn_bin = [[200,400,0.1],[400,2000,0.4],[2000,10000,2],[10000,30000,10]]
+    
+    # this is to be consistent with old database
+    wn_bin = [[400,2000,0.4],[2000,10000,2],[10000,30000,5]]
+    
+    
+    nu_ = np.concatenate([np.arange(x[0],x[1],x[2]) for x in wn_bin])
     
 
+    #T_Grid = csc.calculate_temperature_layers(T_Min=100, T_Max=800, Step=25)
+    #P_Grid = csc.calculate_pressure_layers(P_surface = 1e5,P_Cutoff = 1e-5)
     
+    user_input = config.Configuration("../../config/user_input.cfg")
+    T_Grid = np.array(user_input["Xsec"]["Molecule"]["T_Grid"],dtype=float)
+    P_Grid = np.array(user_input["Xsec"]["Molecule"]["P_Grid"],dtype=float)/101300
+    
+    d_path = "../../SEAS_Input/Line_List/HITRAN_Line_List/%s"%molecule
+    r_path = "../../SEAS_Input/Cross_Section/HDF5_New"
+
+    # np.zeros maybe more adequate?
+    xsec_grid = [[[] for y in range(len(P_Grid))] for x in range(len(T_Grid))]
+    #sys.stdout = open('redirect.txt', 'w')
+    for i in trange(len(wn_bin), desc='wn bin', leave=True):
+        numin,numax,step = wn_bin[i]
+        nu_std = np.arange(numin,numax,step)
+        
+        
+        data = [[[] for y in range(len(P_Grid))] for x in range(len(T_Grid))]
+        
+        try:
+            xsec_calc = csc.cross_section_calculator(d_path,r_path,molecule,component,numin,numax,step)
+            for i in trange(len(T_Grid),desc="Temperature"):
+                T = T_Grid[i]
+                for j in trange(len(P_Grid),desc="Pressure   "):
+                    P = P_Grid[j]
+                    #print("Generated %s xsec from %s to %s at T: %s and P: %s"%(molecule,numin,numax,P,T))
+                    nu,sigma = xsec_calc.hapi_calculator(P,T) # note that P for hapi_calculator is in atm unit.
+                    data[i][j] = sigma
+                    
+            
+            
+        except Exception as e:
+            print("Missing HITRAN Data for %s from %s to %s"%(molecule,numin,numax))
+            print(e)
+            for i in trange(len(T_Grid),desc="Temperature"):
+                T = T_Grid[i]
+                for j in trange(len(P_Grid),desc="Pressure   "):
+                    P = P_Grid[j]
+                    data[i][j] = np.zeros(len(nu_std))
+        except:
+            print("unknown error")
+            sys.exit()
+        
+        try:
+            os.remove(os.path.join(d_path,"%s.header"%molecule))
+            os.remove(os.path.join(d_path,"%s.data"%molecule))
+        except:
+            pass
+        
+
+        xsec_grid = np.concatenate([xsec_grid,data],2)
+        
+            
+        #[float("%.4g"%x) for x in np.log10(data["results"][j][i])]
+    
+    
+    r_path = ""
+    
+    hdf5_store = h5py.File(os.path.join(r_path,"%s.hdf5"%molecule), "w")
+    hdf5_store.create_dataset("results", data=xsec_grid,compression="gzip",compression_opts=9)
+    hdf5_store.close()
+    
+def generate_cross_section_database():
+    """
+    generate the entire cross section database that is used for atmosphere simulation
+    """
+    
+    return
+
+
 if __name__ == "__main__":
-    generate_cross_section()
+    
+    #test_generate_cross_section()
+    generate_cross_section_molecule("HNO3")
+    #examine_old_nu()
     
     
     

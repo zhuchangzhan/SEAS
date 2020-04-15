@@ -50,7 +50,7 @@ def calculate_temperature_layers(T_Min=100, T_Max=800, Step=50):
 
 class cross_section_calculator():
 
-    def __init__(self,d_path,r_path,molecule,component,numin,numax,step=0.1):
+    def __init__(self,d_path,r_path,molecule,component,numin,numax,step=0.1,remake=False):
         """
         P: Unit is Pa
         n: molecule name
@@ -71,9 +71,20 @@ class cross_section_calculator():
         self.step  = step
 
         hp.db_begin(self.d_path)
+        
+        
+        if os.path.isfile(os.path.join(self.d_path,"%s.header"%(molecule))) and not remake:
+            return
+            hp.select(molecule)#,ParameterNames=("nu","sw"), Conditions=("between","nu",float(self.numin),float(self.numax)))
+        else:
+            print("getting new data")
+            sys.exit()
+            hp.fetch(molecule,self.n,self.m,numin,numax)
+        """
         hp.fetch(molecule,self.n,self.m,numin,numax)
-        #hp.select(molecule,ParameterNames=("nu","sw"), Conditions=("between","nu",float(self.numin),float(self.numax)))
-    
+        """ 
+        
+            
     def hapi_calculator(self,P=1.,T=300.,gamma="gamma_self",cross=True):
         """
         This calculation is slow and can not optimize due to external package dependencies, 
@@ -93,7 +104,7 @@ class cross_section_calculator():
                                                   OmegaStep=self.step,
                                                   HITRAN_units=self.cross,
                                                   GammaL=self.gamma, 
-                                                  Environment={'p':float(self.P),'T':float(self.T)})
+                                                  Environment={'p':P,'T':T})
     
         return nu,coef
 

@@ -375,8 +375,15 @@ class Xsec_Loader():
         self.normalized_pressure        = user_input["Prototype"]["Normalized_Pressure"]
         self.normalized_temperature     = user_input["Prototype"]["Normalized_Temperature"]
         
+        # old database, supported during the transition, will be renamed to HDF5_DB_old once fixed
+        # new database, will be used in the future, but name will be changed to HDF5_DB
+        # a txt file should exist in the database folder explaining the construct of the database
+        # including wavenumber span, molecule resolution, etc.
         
+        
+        # This should be a parameter in the user_input
         self.DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
+        self.DB_DIR_new = "../../SEAS_Input/Cross_Section/HDF5_New"
         
         nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
         self.nu = np.array(nu["results"])
@@ -408,20 +415,16 @@ class Xsec_Loader():
         filepath = os.path.join(savepath,savename)
         
         if self.reuse and os.path.isfile(filepath):
-            self.nu,self.xsec[molecule] = np.load(filepath) #self.nu doesn't need to be loaded again
+            
+            self.nu,self.xsec[molecule] = np.load(filepath,allow_pickle=True) #self.nu doesn't need to be loaded again
             if VERBOSE:
                 print("%s Cross Section Loaded"%molecule)
         else:
-            if True:
+            if True: # need to change this in the future when not loading from HITRAN sources
                 print(molecule)
-            #try: # This is a temporary solution to add isoprene
-                xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
-                raw_cross_section_grid = np.array(xsec["results"])
-                self.xsec[molecule] = self.grid_interpolate(raw_cross_section_grid)
+                self.xsec[molecule] = self.load_HITRAN_single(molecule)
             else:
-            #except:
-                # need to package and modularize this
-                # Also change the name of load hitran to load xsec
+            
                 xsec = self.load_PNNL(molecule)
                 wave = len(self.nu)
                 layer = len(self.normalized_pressure)
@@ -431,6 +434,11 @@ class Xsec_Loader():
                 self.xsec[molecule] = normalized_xsec
                 print("loaded %s from NIST"%molecule)
             
+            #try: # This is a temporary solution to add isoprene
+            #except:
+                # need to package and modularize this
+                # Also change the name of load hitran to load xsec
+            
             if not os.path.isdir(savepath):
                 os.makedirs(savepath)   
             np.save(filepath, [self.nu,self.xsec[molecule]]) # no need to save self.nu,?
@@ -438,7 +446,7 @@ class Xsec_Loader():
                 print("%s Cross Section Saved"%molecule)
         
     @opt.timeit
-    def load_HITRAN_single(self,molecule,cache=None):
+    def load_HITRAN_single(self,molecule):
         """
         Loading molecular cross section for given pressure and temperature
         Will have to be optimized when doing tp profile retrieval.
@@ -446,17 +454,20 @@ class Xsec_Loader():
         Don't even need to interpolate if matched temperature and pressure
         will see how long the interpolation takes, then judge.
         """
-        if cache != None:
-            self.xsec[molecule] = cache
-    
-        xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+        if molecule == "HNO3":
+            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR_new,molecule), "r")
+        else:
+            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
         
         
-        self.xsec[molecule] = self.grid_interpolate(np.array(xsec["results"]))
+        return self.grid_interpolate(np.array(xsec["results"]))
         
     def load_HITRAN_raw_grid(self,molecule):
         
-        xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+        if molecule == "HNO3":
+            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR_new,molecule), "r")
+        else:
+            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
         
         return xsec["results"]
 

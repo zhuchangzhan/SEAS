@@ -32,8 +32,12 @@ VERBOSE = bool(user_input["Data_IO"]["Logging"]["VERBOSE"])
 @opt.timeit
 def Generate_Atmosphere_Spectra(user_input):
     
+    user_input["turnoff"] = ""
+    
     simulation = TS.Transmission_Spectra_Simulator(user_input)
     simulation.load_atmosphere_geometry_model()
+    
+    
     
     return simulation.user_input
 

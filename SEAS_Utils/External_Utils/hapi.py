@@ -158,7 +158,9 @@ def arange_(lower,upper,step):
     if abs((upper-upper_new)-step) < 1e-10:
         upper_new += step
         npnt += 1    
-    return linspace(lower,upper_new,npnt)
+    
+    
+    return linspace(lower,upper_new,int(npnt))
 
 # ---------------------------------------------------------------
 # ---------------------------------------------------------------
@@ -18958,8 +18960,8 @@ def absorptionCoefficient_Voigt(Components=None,SourceTables=None,partitionFunct
     if OmegaGrid is not None:
         Omegas = npsort(OmegaGrid)
     else:
-        #Omegas = arange(OmegaRange[0],OmegaRange[1],OmegaStep)
-        Omegas = arange_(OmegaRange[0],OmegaRange[1],OmegaStep) # fix
+        Omegas = arange(OmegaRange[0],OmegaRange[1],OmegaStep)
+        #Omegas = arange_(OmegaRange[0],OmegaRange[1],OmegaStep) # fix
     number_of_points = len(Omegas)
     Xsect = zeros(number_of_points)
        
