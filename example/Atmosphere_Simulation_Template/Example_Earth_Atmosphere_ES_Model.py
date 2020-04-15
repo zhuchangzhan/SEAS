@@ -1,3 +1,14 @@
+"""
+
+Simulated Earth Emission Spectra Model
+
+validated using MODTRAN 
+
+
+
+"""
+
+
 import os
 import sys
 import tqdm
@@ -87,11 +98,12 @@ def Simulate_Atmosphere_Observation(user_input):
 def Emission_Forward_Model_Architecture():
     
     user_input = config.Configuration("../../config/user_input.cfg")
-    user_input["Prototype"]["Source"]="CCM"
-    user_input["Prototype"]["Source_Header"] = "NO,H2O,CO2,CH4,N2O,O3,OH,HNO3,O2".split(",")
-    user_input["turnoff"] = ""
+    user_input["Prototype"]["Source"]        = "Earth"
+    user_input["Prototype"]["Source_Header"] = "H2O CO2 CH4 O2 O3 N2".split(" ")
+    user_input["Config"]["molecule_turnoff"] = None
     
-    file = glob.glob("../../SEAS_Input/Atmosphere_Data/MR_Profile/*.txt")[1]
+    file = glob.glob("../../SEAS_Input/Atmosphere_Data/MR_Profile/*.txt")[0]
+    
     
     # Load Surface_Gravity, Base_TS_Value
     user_input = load.load_Astrophysical_Properties(user_input)
@@ -115,11 +127,12 @@ def Emission_Forward_Model_Architecture():
     
     nu = 10000./a1
     
+    plt.plot(nu, calc.blackbody_nu(nu,320),color="k")
     plt.plot(nu, calc.blackbody_nu(nu,300),color="0.9")
-    plt.plot(nu, calc.blackbody_nu(nu,275),color="0.7")
-    plt.plot(nu, calc.blackbody_nu(nu,250),color="0.6")
-    plt.plot(nu, calc.blackbody_nu(nu,225),color="0.4")
-    plt.plot(nu, calc.blackbody_nu(nu,200),color="0.2")
+    plt.plot(nu, calc.blackbody_nu(nu,280),color="0.7")
+    plt.plot(nu, calc.blackbody_nu(nu,260),color="0.6")
+    plt.plot(nu, calc.blackbody_nu(nu,240),color="0.4")
+    plt.plot(nu, calc.blackbody_nu(nu,220),color="0.2")
           
     plt.plot(nu, b1)
         

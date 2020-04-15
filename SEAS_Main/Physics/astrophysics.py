@@ -42,6 +42,9 @@ def blackbody_nu(wn,T): # nu is frequency (Hz) , T is temperature (K)
     """ 
     Blackbody as a function of wavenumber (cm^-1) and temperature (K).
     """
+    
+    print("here")
+    
     nu = wn*3e10 # convert wavenumber to frequency
     return (2*h*nu**3/c**2)*(1/(np.exp((h*nu)/(k*T))-1))
 
