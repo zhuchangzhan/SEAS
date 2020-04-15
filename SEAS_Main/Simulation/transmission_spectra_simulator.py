@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(DIR, '../..'))
 
 from SEAS_Utils.Common_Utils.constants import *
 import SEAS_Main.Physics.astrophysics as calc
-
+import matplotlib.pyplot as plt
 
 class Transmission_Spectra_Simulator():
     
@@ -71,11 +71,15 @@ class Transmission_Spectra_Simulator():
         normalized_rayleigh         = self.user_input["Xsec"]["Rayleigh"]["Value"]
         normalized_cloud_xsec       = self.user_input["Xsec"]["Cloud"]["Value"]
         
+        
+        #plt.plot(normalized_cross_section["HNO3"][0])
+        #plt.show()
+        
         # this need to be better implemented
-        if self.user_input["turnoff"] == None:
+        if self.user_input["Config"]["molecule_turnoff"] == None:
             pass
         else:
-            normalized_cross_section[self.user_input["turnoff"]] = np.zeros((24,12000))
+            normalized_cross_section[self.user_input["Config"]["molecule_turnoff"]] = np.zeros((24,12000))
         
         """
         # fix or move this to somewhere else
