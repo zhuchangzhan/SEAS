@@ -11,17 +11,12 @@ Simulated Exoplanet Atmosphere Spectra
    :maxdepth: 3
    :caption: Contents:
 
+   
+   
+   README.md
    modules
    license
-   README.md
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 
 Update Number
@@ -30,3 +25,9 @@ Update Number
 (Internal tracking purpose only)
 
 
+Indices and tables
+^^^^^^^^^^^^^^^^^^
+
+* :ref:`genindex`
+* :ref:`modindex`
+.. * :ref:`search`
