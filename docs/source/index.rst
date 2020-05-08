@@ -5,6 +5,7 @@
 
 Welcome to SEAS's documentation!
 ================================
+Simulated Exoplanet Atmosphere Spectra
 
 .. toctree::
    :maxdepth: 3
@@ -12,6 +13,7 @@ Welcome to SEAS's documentation!
 
    modules
    license
+   readme_link
 
 
 Indices and tables
