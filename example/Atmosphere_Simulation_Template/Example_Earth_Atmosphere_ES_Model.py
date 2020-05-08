@@ -127,7 +127,7 @@ def Emission_Forward_Model_Architecture():
     
     nu = 10000./a1
     
-    plt.plot(nu, calc.blackbody_nu(nu,320),color="k")
+    
     plt.plot(nu, calc.blackbody_nu(nu,300),color="0.9")
     plt.plot(nu, calc.blackbody_nu(nu,280),color="0.7")
     plt.plot(nu, calc.blackbody_nu(nu,260),color="0.6")

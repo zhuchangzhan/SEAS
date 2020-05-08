@@ -43,8 +43,6 @@ def blackbody_nu(wn,T): # nu is frequency (Hz) , T is temperature (K)
     Blackbody as a function of wavenumber (cm^-1) and temperature (K).
     """
     
-    print("here")
-    
     nu = wn*3e10 # convert wavenumber to frequency
     return (2*h*nu**3/c**2)*(1/(np.exp((h*nu)/(k*T))-1))
 
@@ -245,4 +243,26 @@ def calculate_air_density(P,T,mean_air=28):
     return P*mean_air/(k*T*R)
         
     
+def calc_transit_duration_calculation():
+    
+    G = 6.67e-11
+    sigma = 5.68e-8
+    
+    M_Sun = 1.989e30
+    R_Sun = 6.96e8
+    L_Sun = 3.846e26
+    AU = 1.5e11
+    
+    
+    a = 0.29 # albedo of earth
+    T = 300
+    
+    L_star = L_Sun*0.005
+    M = M_Sun*0.2
+    d = np.sqrt(L_star*(1-a)/(16*np.pi*T**4*sigma))
+    r_star = R_Sun*0.25 
+    
+    V = np.sqrt(G*M/d)
+    
+    print(2*r_star/V/3600)
     

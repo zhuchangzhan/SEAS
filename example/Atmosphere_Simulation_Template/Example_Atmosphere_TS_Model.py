@@ -85,7 +85,7 @@ def Simulate_Atmosphere_Observation(user_input):
     
     return user_input
 
-
+@opt.timeit
 def cal_binned_SNR(nu, bio_depth,bio_transit_depth_bin,b_SNR_bio,b_ATM_SNR_bio):
 
     #plt.plot(10000./nu,(bio_depth-ref_depth)*1e6)
@@ -155,6 +155,9 @@ def display_output_spectra(user_input):
     D_atmosphere     = user_input["Spectra"]["D_atmosphere"]
     nu               = user_input["Spectra"]["nu"]
     
+    
+    
+    
     a_sig,b_sig,c_sig = [],[],[]
     a_noise,b_noise,c_noise = [],[],[]
     
@@ -175,6 +178,7 @@ def display_output_spectra(user_input):
     
     ref_depth = (convolved_Height+R_Planet)**2/R_Star**2
     ref_depth_bin = (D_atmosphere+R_Planet)**2/R_Star**2
+    
 
     result = cal_binned_SNR(nu,ref_depth,ref_depth_bin,SNR,SNR_Broad)
     ATM_Max_SNR_ref,a,b,c,d,atm_diff_ref,atm_error_ref = result

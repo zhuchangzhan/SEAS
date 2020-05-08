@@ -420,11 +420,10 @@ class Xsec_Loader():
             if VERBOSE:
                 print("%s Cross Section Loaded"%molecule)
         else:
-            if True: # need to change this in the future when not loading from HITRAN sources
+            try: # need to change this in the future when not loading from HITRAN sources
                 print(molecule)
                 self.xsec[molecule] = self.load_HITRAN_single(molecule)
-            else:
-            
+            except: # This is a temporary solution to add isoprene
                 xsec = self.load_PNNL(molecule)
                 wave = len(self.nu)
                 layer = len(self.normalized_pressure)
@@ -433,11 +432,6 @@ class Xsec_Loader():
                     normalized_xsec[i] = xsec
                 self.xsec[molecule] = normalized_xsec
                 print("loaded %s from NIST"%molecule)
-            
-            #try: # This is a temporary solution to add isoprene
-            #except:
-                # need to package and modularize this
-                # Also change the name of load hitran to load xsec
             
             if not os.path.isdir(savepath):
                 os.makedirs(savepath)   
