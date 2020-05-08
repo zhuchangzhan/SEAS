@@ -44,21 +44,35 @@ def calculate_pressure_layers(P_surface = 100000,P_Cutoff = 0.00001):
 
 def calculate_temperature_layers(T_Min=100, T_Max=800, Step=50):
     """
-    Generate the temperature layers. +1 so that T_Max is inclusive
+    Helper function for generating temperature layers
+    +1 is added to T_Max so that it is inclusive [100,800]
     """
     return np.arange(T_Min,T_Max+1,Step)
 
 class cross_section_calculator():
 
-    def __init__(self,d_path,r_path,molecule,component,numin,numax,step=0.1,remake=False):
+    def __init__(self,d_path,molecule,component,numin,numax,step=0.1,remake=False):
         """
-        P: Unit is Pa
-        n: molecule name
-        m: molecular isotope
-        i: molecule abundance
+        Initiate cross section calculator instance with required parameters
+        
+        Parameters
+        ----------
+        d_path : str
+            filepath for where the linelist data will be stored
+        molecule : str
+            Name of the molecule. Has to be one which HITRAN recognize
+        numin : float
+            minimum wavenumber [cm^-1]
+        numax : float
+            maximum wavenumber [cm^-1]
+        step : float
+            wavenumber increment step size. 
+        remake : bool
+            Flag for whether the hitran linelist will be downloaded again or not. 
+            Duplicate with SL_Flag. Will remove in future iterations but keep now for compat.
+
         """
         self.d_path = d_path
-        self.r_path = r_path
         
         self.molecule = molecule
         
@@ -74,24 +88,39 @@ class cross_section_calculator():
         
         
         if os.path.isfile(os.path.join(self.d_path,"%s.header"%(molecule))) and not remake:
-            return
-            hp.select(molecule)#,ParameterNames=("nu","sw"), Conditions=("between","nu",float(self.numin),float(self.numax)))
+            pass
+            #hp.select(molecule)#,ParameterNames=("nu","sw"), Conditions=("between","nu",float(self.numin),float(self.numax)))
         else:
             print("getting new data")
-            sys.exit()
             hp.fetch(molecule,self.n,self.m,numin,numax)
-        """
-        hp.fetch(molecule,self.n,self.m,numin,numax)
-        """ 
-        
+
             
     def hapi_calculator(self,P=1.,T=300.,gamma="gamma_self",cross=True):
         """
-        This calculation is slow and can not optimize due to external package dependencies, 
-        However, this is a "done once" deal so should be ok unless research involve tweeking different cross section types
-        This module can be replaced with alternative methods or user developed methods.
+        Calculate cross section using the hapi package.
         
-        issues with the select function in hapi not working as intended
+        This calculation is slow and difficult to optimize due to external package dependencies, 
+        However, cross section grid generation should be an "onetime" task for most user applications.
+        
+        Parameters
+        ----------        
+
+        P : float
+            Pressure [bar]
+        T : float
+            Temperature [K]        
+        gamma : str
+            Hapi parameter 
+        cross : bool
+            If True, use cm^2/molecule for output cross section value
+            This should be kept as True unless you know what you're doing
+        
+        Returns
+        -------
+        nu : array
+            wavenumber array
+        coef : array
+            cross section array
         """
         
         self.P = P
