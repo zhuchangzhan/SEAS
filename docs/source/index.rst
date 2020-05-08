@@ -22,7 +22,7 @@ Simulated Exoplanet Atmosphere Spectra
 
 Update Number
 ^^^^^^^^^^^^^
-0.8.0006
+0.8.0007
 (Internal tracking purpose only)
 
 
