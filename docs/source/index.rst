@@ -14,6 +14,7 @@ Simulated Exoplanet Atmosphere Spectra
    
    
    README.md
+   module/executable
    module/modules
    license
 
@@ -21,7 +22,7 @@ Simulated Exoplanet Atmosphere Spectra
 
 Update Number
 ^^^^^^^^^^^^^
-0.8.0005
+0.8.0006
 (Internal tracking purpose only)
 
 
