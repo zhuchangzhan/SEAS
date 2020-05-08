@@ -13,6 +13,6 @@ Code download and installation using command line:
 1. git clone https://github.com/zhuchangzhan/SEAS.git
 2. virtualenv SEAS_Env
 3. Source SEAS_Env/Bin/Activate
-4. pip install requirements.txt
+4. pip install -r requirements.txt
 5. examples and tools are in the executable folder
 
