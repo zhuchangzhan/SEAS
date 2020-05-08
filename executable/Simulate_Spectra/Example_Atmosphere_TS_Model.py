@@ -142,69 +142,31 @@ def cal_binned_SNR(nu, bio_depth,bio_transit_depth_bin,b_SNR_bio,b_ATM_SNR_bio):
     return Max_SNR,mean_atmosphere_radius_per_wavelength,standard_error_atmosphere_radius_per_wavelength,mean_atmosphere_radius_,standard_error_atmosphere_radius_,atm_diff,atm_error
     
 @opt.timeit
-def display_output_spectra(user_input):
+def display_output_spectra(user_input,file):
     
-    signal          = user_input["Spectra"]["Signal"]
-    photon_noise    = user_input["Spectra"]["Noise"]
-    SNR             = user_input["Spectra"]["SNR"]
-
-    convolved_Height = user_input["Spectra"]["bin_values"]
+    
+    fig = plt.figure(figsize=(12, 6)) 
+    ax1 = fig.add_subplot(111) 
+    
     R_Planet         = float(user_input["Planet"]["R_Planet"])*R_Earth
     R_Star           = float(user_input["Star"]["R_Star"])*R_Sun
-    bin_centers      = user_input["Spectra"]["bin_centers"]
-    D_atmosphere     = user_input["Spectra"]["D_atmosphere"]
-    nu               = user_input["Spectra"]["nu"]
     
     
+    nu,flux = user_input["Spectra"]["nu"], user_input["Spectra"]["bin_values"]
     
-    
-    a_sig,b_sig,c_sig = [],[],[]
-    a_noise,b_noise,c_noise = [],[],[]
-    
-    for i,sig,noise in zip(bin_centers,signal,photon_noise):
-        if i> 1 and i < 5:
-            a_sig.append(sig)
-            a_noise.append(noise)
-        if i >= 5 and i < 12:
-            b_sig.append(sig)
-            b_noise.append(noise)
-        if i >= 12:
-            c_sig.append(sig)
-            c_noise.append(noise)
-            
-    SNR_Broad = [np.sum(a_sig)/np.sqrt(np.sum(np.array(a_noise)**2)),
-                 np.sum(b_sig)/np.sqrt(np.sum(np.array(b_noise)**2)),
-                 np.sum(c_sig)/np.sqrt(np.sum(np.array(c_noise)**2))]
-    
-    ref_depth = (convolved_Height+R_Planet)**2/R_Star**2
-    ref_depth_bin = (D_atmosphere+R_Planet)**2/R_Star**2
-    
+    ref_depth = (flux+R_Planet)**2/R_Star**2
 
-    result = cal_binned_SNR(nu,ref_depth,ref_depth_bin,SNR,SNR_Broad)
-    ATM_Max_SNR_ref,a,b,c,d,atm_diff_ref,atm_error_ref = result
-
-    mean_atmosphere_radius_per_wavelength_ref = a
-    standard_error_atmosphere_radius_per_wavelength_ref = b
-    mean_atmosphere_radius_ref_ = c
-    standard_error_atmosphere_radius_ref_ = d 
-
-    mean_atmosphere_wav     = np.array([3,8.5,18.5])
-    mean_atmosphere_width   = np.array([2,3.5,6.5])
-
-    fig = plt.figure(figsize=(12, 9)) 
-    ax1 = fig.add_subplot(111) 
-    ax1.plot(10000./nu,ref_depth*1e6,label="w/o PH$_3$")
-
-    ax1.errorbar(bin_centers,
-                 (mean_atmosphere_radius_per_wavelength_ref)*1e6,
-                 yerr=standard_error_atmosphere_radius_per_wavelength_ref*1e6,
-                 capsize=4, markersize=6,fmt='--o',label="w/o PH$_3$ Binned",color="0.5")
-    ax1.errorbar(mean_atmosphere_wav,
-                 (mean_atmosphere_radius_ref_)*1e6,
-                 xerr=mean_atmosphere_width,
-                 yerr=standard_error_atmosphere_radius_ref_*1e6,
-                 capsize=4, markersize=6,fmt='o',label="w/o PH$_3$ Atm. Avg.",color="y")   
+    #ax1.plot(10000./nu,ref_depth*1e6,label = file.split("/")[-1])
+        
+    ax1.plot(10000./nu,(flux+R_Planet)**2/R_Star**2,label = file.split("/")[-1])
     
+    """
+    with open("../Pandexo_Integration/%s_%s"%(file.split("/")[1],file.split("/")[-1].replace(".dat",".txt")),"w") as f:
+        for i,j in zip(10000./nu[::-1],ref_depth[::-1]):
+            f.write("%s %s\n"%(i,j))
+    """
+    
+    #ax1.plot(10000./user_input["Xsec"]["nu"],user_input["Xsec"]["Cloud"]["Value"][0],label = mean)
 
     ax1.set_ylabel("Transit Depth (ppm)", fontsize=16) 
     #ax1.set_xlabel('Wavelength ($\mu$m)', fontsize=22)
@@ -249,8 +211,8 @@ def Forward_Model_Architecture():
     # Load Observation parameters and generate simulated observation
     user_input = Simulate_Atmosphere_Observation(user_input)
     
-    # Display the output result
-    display_output_spectra(user_input)
+    
+    display_output_spectra(user_input,file)
     
 
 if __name__ == "__main__":
