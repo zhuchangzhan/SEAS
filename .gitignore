@@ -11,7 +11,7 @@ config/SEAS_ENV
 deprecated
 SEAS_Input/Cross_Section/*
 !SEAS_Input/Cross_Section/HDF5_DB
-!SEAS_Input/Cross_Section/HDF5_New
+SEAS_Input/Cross_Section/HDF5_New
 SEAS_Input/Line_List/HITRAN_Line_List
 SEAS_Input/Line_List
 

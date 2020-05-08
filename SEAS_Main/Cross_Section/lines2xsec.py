@@ -141,7 +141,7 @@ def read_data(path,molecule,numin,numax,imin=-1,ctop=-1,direct=False,multi=False
     else:
         
         if direct:
-            print "Reading Data From %s"%(path)
+            print("Reading Data From %s"%(path))
             f = open(path).read().split("\n")
             
         else:
@@ -293,7 +293,7 @@ def absorption_Voigt_calculation(molecule_data, component, gamma_name, P, T, num
             d_name = "delta_self"
             dp_name= "deltap_self"
         else:
-            print "unknown gamma"
+            print("unknown gamma")
             return
         
         try:

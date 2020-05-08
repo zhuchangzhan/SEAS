@@ -40,7 +40,7 @@ def calculate_pressure_layers(P_surface = 100000,P_Cutoff = 0.00001):
     will be interpolated from the cross section grid. 
     """
     layers = np.ceil(-np.log(P_Cutoff/P_surface))    
-    return [float("%.3g"%x) for x in np.exp(-np.arange(layers))*P_surface]
+    return np.array([float("%.3g"%x) for x in np.exp(-np.arange(layers))*P_surface])
 
 def calculate_temperature_layers(T_Min=100, T_Max=800, Step=50):
     """
@@ -50,28 +50,29 @@ def calculate_temperature_layers(T_Min=100, T_Max=800, Step=50):
     return np.arange(T_Min,T_Max+1,Step)
 
 class cross_section_calculator():
+    """
+    Parameters
+    ----------
+    d_path : str
+        filepath for where the linelist data will be stored
+    molecule : str
+        Name of the molecule. Has to be one which HITRAN recognize
+    numin : float
+        minimum wavenumber [cm^-1]
+    numax : float
+        maximum wavenumber [cm^-1]
+    step : float
+        wavenumber increment step size. 
+    remake : bool
+        Flag for whether the hitran linelist will be downloaded again or not. 
+        Duplicate with SL_Flag. Will remove in future iterations but keep now for compat.
+    """
 
     def __init__(self,d_path,molecule,component,numin,numax,step=0.1,remake=False):
         """
         Initiate cross section calculator instance with required parameters
-        
-        Parameters
-        ----------
-        d_path : str
-            filepath for where the linelist data will be stored
-        molecule : str
-            Name of the molecule. Has to be one which HITRAN recognize
-        numin : float
-            minimum wavenumber [cm^-1]
-        numax : float
-            maximum wavenumber [cm^-1]
-        step : float
-            wavenumber increment step size. 
-        remake : bool
-            Flag for whether the hitran linelist will be downloaded again or not. 
-            Duplicate with SL_Flag. Will remove in future iterations but keep now for compat.
-
         """
+        
         self.d_path = d_path
         
         self.molecule = molecule

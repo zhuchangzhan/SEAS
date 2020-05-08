@@ -6,8 +6,8 @@ Subpackages
 
 .. toctree::
 
-   executable.1.Generate Xsec Database
-   executable.Atmosphere_Simulation_Template
+   executable.Calculate_Xsec_Database
+   executable.Simulate_Spectra
    executable.Templates
 
 Module contents

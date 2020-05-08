@@ -1,5 +1,6 @@
 import sys
 import time
+import h5py
 import inspect
 
 def timeit(method):
@@ -39,7 +40,21 @@ def check_arg_kwarg(*arg,**kwarg):
     print(*arg)
     #print(**kwarg)
 
-
+def compress_h5py_database(input_file,output_file,tablename="results",compress="gzip",compress_opts=9):
+    """
+    reduce the storage space of uncompressed database
+    
+    """
+    
+    input = h5py.File(input_file, "r")
+    input_data = input[tablename]
+    
+    hdf5_store = h5py.File(output_file, "w")
+    hdf5_store.create_dataset(tablename, 
+                              data=input_data,
+                              compression=compress,
+                              compression_opts=compress_opts)
+    hdf5_store.close()
 
 if __name__ == "__main__":
     你大爷 = ["yes","no","1"]
