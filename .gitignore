@@ -8,6 +8,7 @@ SEAS_Env/
 .pydevproject
 .DS_Store
 config/SEAS_ENV
+deprecated
 SEAS_Input/Cross_Section/*
 !SEAS_Input/Cross_Section/HDF5_DB
 !SEAS_Input/Cross_Section/HDF5_New
@@ -81,6 +82,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/build/
 
 # PyBuilder
 target/
