@@ -14,7 +14,7 @@ Simulated Exoplanet Atmosphere Spectra
    
    
    README.md
-   modules
+   module/modules
    license
 
 
