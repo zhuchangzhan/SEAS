@@ -13,7 +13,7 @@ Simulated Exoplanet Atmosphere Spectra
 
    modules
    license
-   readme_link
+   README.md
 
 
 Indices and tables
@@ -22,3 +22,11 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+Update Number
+^^^^^^^^^^^^^
+0.8.0003
+(For internal tracking purpose, no actual use)
+
+
