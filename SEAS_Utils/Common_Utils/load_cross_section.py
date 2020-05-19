@@ -11,6 +11,7 @@ import sys
 import h5py
 import numpy as np
 import miepython as mp
+import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d, RegularGridInterpolator
 
 DIR = os.path.abspath(os.path.dirname(__file__))
@@ -82,6 +83,59 @@ class Cross_Section_Loader():
         self.wave = 10000./self.nu
         
         return self.wave
+
+
+    def load_CIA(self, molecule="H2-H2", savepath=None, savename=None, cache=None):
+
+        if molecule != "H2-H2":
+            print("CIA other than H2-H2 is not implemented")
+            sys.exit()
+
+        if cache != None:
+            self.xsec[molecule] = cache
+    
+        hash = self.user_input["Data_IO"]["Hash"]
+        savepath = savepath or "../../SEAS_Input/Cross_Section/Generated/%s"%hash
+        savename = savename or "%s_cia_%s.npy"%(molecule,hash)
+        filepath = os.path.join(savepath,savename)
+        
+        if self.reuse and os.path.isfile(filepath):
+            
+            self.nu, normalized_cia_grid = np.load(filepath,allow_pickle=True) #self.nu doesn't need to be loaded again
+            if VERBOSE:
+                print("%s CIA Cross Section Loaded"%molecule)
+
+        else:
+            HITRAN_CIA = self.user_input["Xsec"]["CIA"]["Source"]
+            
+            H2_CIA = os.path.join(HITRAN_CIA,"H2-H2_2011.cia")
+            temperature = []
+            with open(H2_CIA) as f:
+                data = f.read().split("\n")
+                if data[-1] == "":
+                    data = data[:-1]
+                        
+                data_point = int(data[0][40:47].strip()) # identify how many datapoint exist for this molecule
+                data_grid = np.reshape(np.array(data),(-1,data_point+1)) # reshape the data by temperature blocks
+                cia_grid = np.zeros((len(data_grid),data_point))
+                
+                for i,info in enumerate(data_grid):
+                    temperature.append(int(float(info[0][47:54].strip()))) # extract temperature from first line
+                    n,x = np.array([x.split() for x in info[1:]],dtype="float").T # process data from the remain line in the block
+                    cia_grid[i] = np.array(x,dtype="float")
+                
+            self.user_input["Xsec"]["CIA"]["T_Grid"] = temperature
+    
+            normalized_cia_grid = self.grid_interpolate(cia_grid,n,select="cia")
+
+            if not os.path.isdir(savepath):
+                os.makedirs(savepath)   
+            np.save(filepath, [self.nu, normalized_cia_grid]) # no need to save self.nu,?
+            if VERBOSE:
+                print("%s CIA Cross Section Saved"%molecule)
+        
+        return normalized_cia_grid
+        
     
     def load_HITRAN(self, molecule, savepath=None, savename=None,cache=None):
         """
@@ -122,7 +176,10 @@ class Cross_Section_Loader():
             np.save(filepath, [self.nu,self.xsec[molecule]]) # no need to save self.nu,?
             if VERBOSE:
                 print("%s Cross Section Saved"%molecule)
-        
+
+
+
+   
     @opt.timeit
     def load_HITRAN_single(self,molecule):
         """
@@ -136,7 +193,6 @@ class Cross_Section_Loader():
             xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR_new,molecule), "r")
         else:
             xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
-        
         
         return self.grid_interpolate(np.array(xsec["results"]))
         
@@ -208,20 +264,31 @@ class Cross_Section_Loader():
         return yinterp
         
     @opt.timeit
-    def grid_interpolate(self,xsec_grid):
+    def grid_interpolate(self,xsec_grid,nu=None,select="molecule"):
         
-        T_Grid = np.array(self.user_input["Xsec"]["Molecule"]["T_Grid"],dtype=float)
-        P_Grid = np.array(self.user_input["Xsec"]["Molecule"]["P_Grid"],dtype=float)
-        
-        # creating the 2D interpolation function
-        # the [::-1] is because it needs to be strictly ascending
-        f = RegularGridInterpolator((np.log10(P_Grid[::-1]),T_Grid, self.nu),xsec_grid[::-1])
         wave = len(self.nu)
         layer = len(self.normalized_pressure)
         normalized_xsec = np.zeros((layer,wave))
         
-        for i,(P_E,T_E) in enumerate(zip(np.log10(self.normalized_pressure),self.normalized_temperature)):
-            normalized_xsec[i] = f(np.array([np.ones(wave)*P_E, np.ones(wave)*T_E, self.nu]).T)
+        if select == "molecule":
+            
+            T_Grid = np.array(self.user_input["Xsec"]["Molecule"]["T_Grid"],dtype=float)
+            P_Grid = np.array(self.user_input["Xsec"]["Molecule"]["P_Grid"],dtype=float)
+            
+            # creating the 2D interpolation function
+            # the [::-1] is because it needs to be strictly ascending
+            f = RegularGridInterpolator((np.log10(P_Grid[::-1]),T_Grid, self.nu),xsec_grid[::-1])
+        
+            for i,(P_E,T_E) in enumerate(zip(np.log10(self.normalized_pressure),self.normalized_temperature)):
+                normalized_xsec[i] = f(np.array([np.ones(wave)*P_E, np.ones(wave)*T_E, self.nu]).T)
+        
+        elif select == "cia":
+            T_Grid = np.array(self.user_input["Xsec"]["CIA"]["T_Grid"],dtype=float)
+            f = RegularGridInterpolator((T_Grid, nu), xsec_grid,
+                                        bounds_error=False,fill_value=0)
+ 
+            for i, T_E in enumerate(self.normalized_temperature):
+                normalized_xsec[i] = f(np.array([np.ones(wave)*T_E, self.nu]).T)
         
         return normalized_xsec
 
@@ -267,6 +334,9 @@ class Cross_Section_Loader():
         return normalized_cloud_xsec   
 
     def calculate_mie_cloud(self):
+        """
+        need to add cache to this instead of generating everytime
+        """
         
         Source = self.user_input["Xsec"]["Cloud"]["Source"]
         
@@ -297,7 +367,11 @@ class Cross_Section_Loader():
         
         return np.interp(10000./self.nu, lam, cloud_sigma)
 
+    # 24, 9, 12000
+    
 
-# Saved for later development
+
+
+
 
 

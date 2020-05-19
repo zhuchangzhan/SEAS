@@ -97,12 +97,14 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
 def load_Absorption_Cross_Section(user_input,reuse=True):
     """
     This will get renamed to load_Cross_Section since it's more general than just loading molecular cross section
+    
+    
+    need to rework the molecule cross section loading sequence. 
+        create a pandas database which contains data availability
+    
     """
-
-
     info = xsec.Cross_Section_Loader(user_input,reuse)
     user_input["Xsec"]["nu"]                = info.nu  
-    
     
     if user_input["Prototype"]["Source"] in ["Photochemistry","CCM","Earth"]:
         # Hash created for identifying the xsec used for the TP profile
@@ -122,11 +124,16 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
         # Load Cloud xsec
         # This should always be loaded after the molecular xsec because it needs nu
         if user_input["Xsec"]["Cloud"]["type"] == "grey":
-            user_input["Xsec"]["Cloud"]["Value"]    = info.load_gray_cloud()
+            user_input["Xsec"]["Cloud"]["Value"] = info.load_gray_cloud()
         elif user_input["Xsec"]["Cloud"]["type"] == "Mie":
-            user_input["Xsec"]["Cloud"]["Value"]    = info.load_mie_cloud()
+            user_input["Xsec"]["Cloud"]["Value"] = info.load_mie_cloud()
       
-        
+        # Load Collision Induced Absorption
+        if "H2" in user_input["Prototype"]["Molecule_List"]:
+            user_input["Xsec"]["CIA"]["Enable"] = "True"
+            user_input["Xsec"]["CIA"]["H2-H2"]  = info.load_CIA(molecule="H2-H2")
+            
+            
     elif user_input["Prototype"]["Source"] == "Boxcar":
         
         user_input["Data_IO"]["Hash"] = hashlib.sha224(("Boxcar_300_100000").encode()).hexdigest()[:8] # This is temporary

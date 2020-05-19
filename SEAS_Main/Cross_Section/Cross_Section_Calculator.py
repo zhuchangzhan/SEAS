@@ -2,8 +2,19 @@
 
 Main module for handling lower level operations of cross section generation
 
-This module replaces the old
-cross_section_calculator and cross_section_database_generator
+uses the hapi module for cross section calculation
+
+
+
+
+We need to implement a way of adding cross section incrementally... 
+which needs a tracker on the condition of the cross section database
+need to be able to robustly expand the exisiting database.
+
+some sort of grid interpreter/visualizer is needed to show what is currently stored.
+Work load for this would be another day or so that it can
+
+
 
 Citation for Hapi:
 R.V. Kochanov, I.E. Gordon, L.S. Rothman, P. Wcislo, C. Hill, J.S. Wilzewski, HITRAN Application Programming Interface (HAPI): A comprehensive approach to working with spectroscopic data, J. Quant. Spectrosc. Radiat. Transfer 177, 15-30 (2016) [Link to article].
@@ -19,6 +30,7 @@ DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
 
 import SEAS_Utils.External_Utils.hapi as hp
+
 
 from SEAS_Main.Cross_Section.HITRAN_Match import HITRAN_Match
 
@@ -46,6 +58,10 @@ def calculate_temperature_layers(T_Min=100, T_Max=800, Step=50):
     """
     Helper function for generating temperature layers
     +1 is added to T_Max so that it is inclusive [100,800]
+    
+    Parameters
+    
+    
     """
     return np.arange(T_Min,T_Max+1,Step)
 
@@ -71,6 +87,7 @@ class cross_section_calculator():
     def __init__(self,d_path,molecule,component,numin,numax,step=0.1,remake=False):
         """
         Initiate cross section calculator instance with required parameters
+        
         """
         
         self.d_path = d_path
@@ -81,9 +98,11 @@ class cross_section_calculator():
         self.m = component[1]
         self.i = component[2]
 
+        
         self.numin = numin
         self.numax = numax   
         self.step  = step
+        
 
         hp.db_begin(self.d_path)
         
