@@ -65,6 +65,30 @@ def calculate_temperature_layers(T_Min=100, T_Max=800, Step=50):
     """
     return np.arange(T_Min,T_Max+1,Step)
 
+def calculate_resolution_from_step(wn=3000.,step=1.):
+    
+    left = 10000./(wn-step/2)
+    right = 10000./(wn+step/2)
+
+    delta_wav = left-right
+    wavelength = 10000./wn
+    
+    R = wavelength/delta_wav
+    
+    return R
+
+def calculate_step_from_resolution(wavelength=3.,R=1000.):
+    
+     
+    delta_wav = wavelength/R
+    wn = 10000./wavelength
+    
+    #https://www.wolframalpha.com/input/?i=a+%3D+10000%2F%28b-x%2F2%29-10000%2F%28b%2Bx%2F2%29+solve+x
+    step = 2*(np.sqrt(delta_wav**2*wn**2+1e8)-1e4)/delta_wav
+    
+    return step
+
+
 class cross_section_calculator():
     """
     Parameters
@@ -84,7 +108,7 @@ class cross_section_calculator():
         Duplicate with SL_Flag. Will remove in future iterations but keep now for compat.
     """
 
-    def __init__(self,d_path,molecule,component,numin,numax,step=0.1,remake=False):
+    def __init__(self,d_path,molecule,component,numin=None,numax=None,step=None,wn_bin=None,remake=False):
         """
         Initiate cross section calculator instance with required parameters
         
@@ -98,11 +122,15 @@ class cross_section_calculator():
         self.m = component[1]
         self.i = component[2]
 
-        
-        self.numin = numin
-        self.numax = numax   
-        self.step  = step
-        
+        if numin != None:
+            self.numin = numin
+            self.numax = numax   
+            self.step  = step
+        else:
+            self.numin = min(wn_bin)
+            self.numax = max(wn_bin)
+            self.step = None
+            self.wn_bin = wn_bin
 
         hp.db_begin(self.d_path)
         
@@ -111,8 +139,8 @@ class cross_section_calculator():
             pass
             #hp.select(molecule)#,ParameterNames=("nu","sw"), Conditions=("between","nu",float(self.numin),float(self.numax)))
         else:
-            print("getting new data")
-            hp.fetch(molecule,self.n,self.m,numin,numax)
+            print("getting new data %s %s"%(self.numin,self.numax))
+            hp.fetch(molecule,self.n,self.m,self.numin,self.numax)
 
             
     def hapi_calculator(self,P=1.,T=300.,gamma="gamma_self",cross=True):
@@ -148,13 +176,24 @@ class cross_section_calculator():
         self.gamma = gamma
         self.cross = cross
         
-        nu, coef = hp.absorptionCoefficient_Voigt(((self.n,self.m,self.i),),
-                                                  self.molecule, 
-                                                  OmegaStep=self.step,
-                                                  HITRAN_units=self.cross,
-                                                  GammaL=self.gamma, 
-                                                  Environment={'p':P,'T':T})
-    
+        print("here")
+        if self.step != None:
+            nu, coef = hp.absorptionCoefficient_Voigt(((self.n,self.m,self.i),),
+                                                      self.molecule, 
+                                                      OmegaStep=self.step,
+                                                      HITRAN_units=self.cross,
+                                                      GammaL=self.gamma, 
+                                                      Environment={'p':P,'T':T})
+        else:
+            
+            nu, coef = hp.absorptionCoefficient_Voigt(((self.n,self.m,self.i),),
+                                                      self.molecule, 
+                                                      WavenumberGrid = self.wn_bin,
+                                                      HITRAN_units=self.cross,
+                                                      GammaL=self.gamma, 
+                                                      Environment={'p':P,'T':T})
+            
+            
         return nu,coef
 
 

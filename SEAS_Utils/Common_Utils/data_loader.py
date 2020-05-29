@@ -1,3 +1,14 @@
+"""
+
+Submodule to load all input data for SEAS
+serve as main controller 
+
+We need to add checking the molecule availability database
+
+
+
+"""
+
 import os
 import sys
 import hashlib

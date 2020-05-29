@@ -97,7 +97,6 @@ def calculate_scale_height(user_input):
     
     return user_input
 
-
 class Atmosphere_Profile_Loader():
     
     def __init__(self):

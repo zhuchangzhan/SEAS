@@ -5,6 +5,11 @@ Should not be called by user
 
 
 need to add grid interpretation.
+
+
+
+
+
 """
 import os
 import sys
@@ -43,7 +48,9 @@ def main_molecule_selector(molecule,
             pass
         elif preference == "NIST":
             pass
-            
+
+#Xsec_Loader
+
 class Cross_Section_Loader():
     """
     Absorption Cross Section Loader.
@@ -70,8 +77,9 @@ class Cross_Section_Loader():
         self.DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
         self.DB_DIR_new = "../../SEAS_Input/Cross_Section/HDF5_New"
         
-        nu = h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r")
-        self.nu = np.array(nu["results"])
+        with h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r") as dnu:
+            self.nu = np.array(dnu["results"])
+            
         self.xsec = {}
         
         # for interpolating the cross section
@@ -83,7 +91,6 @@ class Cross_Section_Loader():
         self.wave = 10000./self.nu
         
         return self.wave
-
 
     def load_CIA(self, molecule="H2-H2", savepath=None, savename=None, cache=None):
 
@@ -135,8 +142,7 @@ class Cross_Section_Loader():
                 print("%s CIA Cross Section Saved"%molecule)
         
         return normalized_cia_grid
-        
-    
+            
     def load_HITRAN(self, molecule, savepath=None, savename=None,cache=None):
         """
         Loading molecule cross section from database or precalculated
@@ -176,9 +182,6 @@ class Cross_Section_Loader():
             np.save(filepath, [self.nu,self.xsec[molecule]]) # no need to save self.nu,?
             if VERBOSE:
                 print("%s Cross Section Saved"%molecule)
-
-
-
    
     @opt.timeit
     def load_HITRAN_single(self,molecule):
@@ -188,22 +191,18 @@ class Cross_Section_Loader():
         This will work when only retrieving on mixing ratio.
         Don't even need to interpolate if matched temperature and pressure
         will see how long the interpolation takes, then judge.
-        """
-        if molecule == "HNO3":
-            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR_new,molecule), "r")
-        else:
-            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
         
-        return self.grid_interpolate(np.array(xsec["results"]))
+        #xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR_new,molecule), "r")
+        """
+        with h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r") as xsec:
+            return self.grid_interpolate(np.array(xsec["results"])) # 24, 9, 12000 grid 
         
     def load_HITRAN_raw_grid(self,molecule):
         
-        if molecule == "HNO3":
-            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR_new,molecule), "r")
-        else:
-            xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r")
+        with h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r") as xsec:
+            return np.array(xsec["results"]) # 24, 9, 12000 grid 
         
-        return xsec["results"]
+        
 
     def load_Exomol(self, molecule):
         
@@ -265,6 +264,14 @@ class Cross_Section_Loader():
         
     @opt.timeit
     def grid_interpolate(self,xsec_grid,nu=None,select="molecule"):
+        """
+        Hypothesis:
+            Would interpolating from a smaller xsec_grid be beneficial for the speed?
+            we only need to load in a grid that is slightly larger than the TP profile, not the whole database.
+        """
+        
+        
+        
         
         wave = len(self.nu)
         layer = len(self.normalized_pressure)

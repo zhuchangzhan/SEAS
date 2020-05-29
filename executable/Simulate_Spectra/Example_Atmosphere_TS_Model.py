@@ -196,6 +196,7 @@ def Forward_Model_Architecture():
     file = os.path.join("../../SEAS_Input/Atmosphere_Data/Atmosphere_Prototype/Example",
                          user_input["Prototype"]["Scenario_File"])
     
+    
      # Load Surface_Gravity, Base_TS_Value
     user_input = load.load_Astrophysical_Properties(user_input)
     

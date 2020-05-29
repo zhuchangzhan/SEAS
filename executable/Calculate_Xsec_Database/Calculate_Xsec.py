@@ -20,14 +20,27 @@ sys.path.insert(0, os.path.join(DIR, '../..'))
 
 import SEAS_Main.Cross_Section.Cross_Section_Calculator as csc
 from SEAS_Main.Cross_Section.HITRAN_Match import HITRAN_Match
+import SEAS_Utils.System_Utils.optimization as opt
 
-
+@opt.timeit
 def test_calculate_cross_section(molecule="CO2",
                                  d_path = "",r_path = "",
                                  P=1,T=300.,
                                  numin=400.,numax=2000.,step=0.4,
                                  SL_Flag=False):
     """
+    
+    
+    sphinx : python official documentation tool: code -> sphinx
+    
+        ReStructredText   :Param: molecules
+        nepolean: -> numpy's method for documentation languange
+    
+    
+    
+    
+    
+    
     calculate cross section with specific inputs
     
     Parameters
@@ -55,7 +68,10 @@ def test_calculate_cross_section(molecule="CO2",
     Returns
     -------
     """
-    
+    if not SL_Flag:
+        os.remove(os.path.join(d_path,"%s.header"%molecule))
+        os.remove(os.path.join(d_path,"%s.data"%molecule))
+            
     try:
         component = [HITRAN_Match[molecule],1,1]
     except:
@@ -91,7 +107,10 @@ def test_calculate_cross_section_multi(molecule="CO2",
         
     
     """
-    
+    if not SL_Flag:
+        os.remove(os.path.join(d_path,"%s.header"%molecule))
+        os.remove(os.path.join(d_path,"%s.data"%molecule))
+            
     try:
         component = [HITRAN_Match[molecule],1,1]
     except:
@@ -108,15 +127,58 @@ def test_calculate_cross_section_multi(molecule="CO2",
         os.remove(os.path.join(d_path,"%s.header"%molecule))
         os.remove(os.path.join(d_path,"%s.data"%molecule))
         
+
+    
+    
+    plt.show()
+
+@opt.timeit
+def test_calculate_cross_section_from_wn_grid(molecule="CO2",
+                                               d_path = "",r_path = "",
+                                               P=1,T=300.,
+                                               wn_bin=[[400,2000,0.4],[2000,10000,2],[10000,30000,5]],
+                                               SL_Flag=False):
+
+    wn = np.concatenate([np.arange(x[0],x[1],x[2]) for x in wn_bin])
+    
+    if not SL_Flag and os.path.isfile(os.path.join(d_path,"%s.header"%molecule)):
+        os.remove(os.path.join(d_path,"%s.header"%molecule))
+        os.remove(os.path.join(d_path,"%s.data"%molecule))
+            
+    try:
+        component = [HITRAN_Match[molecule],1,1]
+    except:
+        print("molecule: %s not recognized, not in HITRAN?"%molecule)
+
+    xsec_calc = csc.cross_section_calculator(d_path,molecule,component,wn_bin=wn)
+    nu, sigma = xsec_calc.hapi_calculator(P,T)
+
+
+    print(len(sigma))
+    plt.plot(nu,sigma)
+    
+    if not SL_Flag:
+        os.remove(os.path.join(d_path,"%s.header"%molecule))
+        os.remove(os.path.join(d_path,"%s.data"%molecule))
+        
+
     
     plt.show()
 
 
 if __name__ == "__main__":
     
+    """
+    for molecule in ["CO2","H2O","NH3"]:
+        test_calculate_cross_section(molecule,SL_Flag=True)
+    """
     
-    test_calculate_cross_section(SL_Flag=True)
-    
+    molecule = "CO2"
+    test_calculate_cross_section_from_wn_grid(molecule=molecule,
+                                               d_path = "",r_path = "",
+                                               P=1.,T=300.,
+                                               wn_bin=[[400,2000,0.4],[2000,10000,2],[10000,30000,5]],
+                                               SL_Flag=True)
     
     
     

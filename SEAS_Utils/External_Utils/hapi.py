@@ -18684,7 +18684,7 @@ def absorptionCoefficient_SDVoigt(Components=None,SourceTables=None,partitionFun
                                               HITRAN_units=False,GammaL='gamma_self')
     ---
     """
-      
+    
     # Paremeters OmegaRange,OmegaStep,OmegaWing,OmegaWingHW, and OmegaGrid
     # are deprecated and given for backward compatibility with the older versions.
     if WavenumberRange:  OmegaRange=WavenumberRange
@@ -18714,6 +18714,8 @@ def absorptionCoefficient_SDVoigt(Components=None,SourceTables=None,partitionFun
     else:
         #Omegas = arange(OmegaRange[0],OmegaRange[1],OmegaStep)
         Omegas = arange_(OmegaRange[0],OmegaRange[1],OmegaStep) # fix
+
+        
     number_of_points = len(Omegas)
     Xsect = zeros(number_of_points)
        
@@ -18765,7 +18767,7 @@ def absorptionCoefficient_SDVoigt(Components=None,SourceTables=None,partitionFun
             raise Exception('Unknown GammaL value: %s' % GammaL)
         
     # Simple check
-    print(Diluent)  # Added print statement # CHANGED RJH 23MAR18  # Simple check
+    #print(Diluent)  # Added print statement # CHANGED RJH 23MAR18  # Simple check
     for key in Diluent:
         val = Diluent[key]
         if val < 0 or val > 1: # if val < 0 and val > 1:# CHANGED RJH 23MAR18
@@ -18935,11 +18937,12 @@ def absorptionCoefficient_Voigt(Components=None,SourceTables=None,partitionFunct
    
     # Paremeters OmegaRange,OmegaStep,OmegaWing,OmegaWingHW, and OmegaGrid
     # are deprecated and given for backward compatibility with the older versions.
-    if WavenumberRange:  OmegaRange=WavenumberRange
-    if WavenumberStep:   OmegaStep=WavenumberStep
-    if WavenumberWing:   OmegaWing=WavenumberWing
-    if WavenumberWingHW: OmegaWingHW=WavenumberWingHW
-    if WavenumberGrid:   OmegaGrid=WavenumberGrid
+    if WavenumberRange is not None:  OmegaRange=WavenumberRange
+    if WavenumberStep is not None:   OmegaStep=WavenumberStep
+    if WavenumberWing is not None:   OmegaWing=WavenumberWing
+    if WavenumberWingHW is not None: OmegaWingHW=WavenumberWingHW
+    if WavenumberGrid is not None:   OmegaGrid=WavenumberGrid
+    
 
     # "bug" with 1-element list
     Components = listOfTuples(Components)
@@ -18963,6 +18966,8 @@ def absorptionCoefficient_Voigt(Components=None,SourceTables=None,partitionFunct
         Omegas = arange(OmegaRange[0],OmegaRange[1],OmegaStep)
         #Omegas = arange_(OmegaRange[0],OmegaRange[1],OmegaStep) # fix
     number_of_points = len(Omegas)
+    
+    
     Xsect = zeros(number_of_points)
        
     # reference temperature and pressure
@@ -19013,7 +19018,7 @@ def absorptionCoefficient_Voigt(Components=None,SourceTables=None,partitionFunct
             raise Exception('Unknown GammaL value: %s' % GammaL)
         
     # Simple check
-    print(Diluent)  # Added print statement # CHANGED RJH 23MAR18  # Simple check
+    # print(Diluent)  # Added print statement # CHANGED RJH 23MAR18  # Simple check
     for key in Diluent:
         val = Diluent[key]
         if val < 0 or val > 1: # if val < 0 and val > 1:# CHANGED RJH 23MAR18
@@ -19120,6 +19125,9 @@ def absorptionCoefficient_Voigt(Components=None,SourceTables=None,partitionFunct
                                                       LineIntensity * lineshape_vals
     
     if File: save_to_file(File,Format,Omegas,Xsect)
+    
+    
+    
     return Omegas,Xsect
     
 
