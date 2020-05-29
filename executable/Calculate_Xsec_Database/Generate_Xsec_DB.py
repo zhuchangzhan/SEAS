@@ -181,6 +181,8 @@ def generate_database():
     
     if not os.path.isdir(r_path):
         os.makedirs(r_path)
+    if not os.path.isdir(r_path):
+        os.makedirs(d_path)
     
     
     wn_bin = [[400.,2000.,0.4],[2000.,10000.,2],[10000.,30000.,5]]
