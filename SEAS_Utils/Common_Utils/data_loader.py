@@ -82,6 +82,8 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
     info = atm_pro.Atmosphere_Profile_Loader()
     
     source = user_input["Prototype"]["Source"]
+    
+    
     if source == "Photochemistry":
         # Create a Hash of the TP profile so that cross sections only need to be generated once per profile
         # Some testing here or a better format is needed
@@ -117,12 +119,17 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
     info = xsec.Cross_Section_Loader(user_input,reuse)
     user_input["Xsec"]["nu"]                = info.nu  
     
+    
     if user_input["Prototype"]["Source"] in ["Photochemistry","CCM","Earth"]:
         # Hash created for identifying the xsec used for the TP profile
         # this is different for every user
         a = str(user_input["Prototype"]["Normalized_Pressure"])
         b = str(user_input["Prototype"]["Normalized_Temperature"])
-        user_input["Data_IO"]["Hash"] = hashlib.sha224((a+b).encode()).hexdigest()[:8]
+        
+        if "New" in user_input["Data_IO"]["File_Path"]["DB_DIR"]:
+            user_input["Data_IO"]["Hash"] = hashlib.sha224((a+b).encode()).hexdigest()[:9]
+        else:
+            user_input["Data_IO"]["Hash"] = hashlib.sha224((a+b).encode()).hexdigest()[:8]
         
         # Load Absorption cross section
         for molecule in user_input["Prototype"]["Molecule_List"]:

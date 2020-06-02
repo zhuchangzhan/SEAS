@@ -132,15 +132,13 @@ class Transmission_Spectra_Simulator():
         CIA_species                 = ["H2-H2"]
         
         
-        #plt.plot(normalized_cross_section["HNO3"][0])
-        #plt.show()
-        
-        # this need to be better implemented
-        if self.user_input["Config"]["molecule_turnoff"] == None:
-            pass
-        else:
-            normalized_cross_section[self.user_input["Config"]["molecule_turnoff"]] = np.zeros((24,12000))
-        
+        """
+        for molecule in normalized_molecules:
+            plt.plot(10000./nu,normalized_cross_section[molecule][0])
+            plt.yscale("log")
+            plt.xscale("log")
+        plt.show()
+        """
 
         
         TotalBeams           = len(normalized_pressure)
@@ -150,6 +148,15 @@ class Transmission_Spectra_Simulator():
         Total_Height         = np.ones(len(nu))*float(self.user_input["Planet"]["R_Planet"])*R_Earth
         Atmosphere_Height    = np.zeros(len(nu))
         base_layer           = float(self.user_input["Planet"]["R_Planet"])*R_Earth
+
+
+        # this need to be better implemented
+        if self.user_input["Config"]["molecule_turnoff"] == None:
+            pass
+        else:
+            normalized_cross_section[self.user_input["Config"]["molecule_turnoff"]] = np.zeros((TotalBeams,12000))
+        
+
         
         # this need to be parameterized
         Cloud = False

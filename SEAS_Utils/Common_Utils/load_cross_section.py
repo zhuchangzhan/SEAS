@@ -51,6 +51,9 @@ def main_molecule_selector(molecule,
 
 #Xsec_Loader
 
+
+
+
 class Cross_Section_Loader():
     """
     Absorption Cross Section Loader.
@@ -60,6 +63,7 @@ class Cross_Section_Loader():
     """
 
     def __init__(self, user_input,reuse=True):
+        
         self.user_input = user_input
         self.reuse = reuse
         
@@ -74,13 +78,20 @@ class Cross_Section_Loader():
         
         
         # This should be a parameter in the user_input
-        self.DB_DIR = "../../SEAS_Input/Cross_Section/HDF5_DB"
-        self.DB_DIR_new = "../../SEAS_Input/Cross_Section/HDF5_New"
+        self.DB_DIR = user_input["Data_IO"]["File_Path"]["DB_DIR"]
         
-        with h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r") as dnu:
-            self.nu = np.array(dnu["results"])
+        
+        
+        if "New" in self.DB_DIR:
+            wn_bin = [[400.,2000.,0.4],[2000.,10000.,2],[10000.,30000.,5]]
+            self.nu = np.concatenate([np.arange(x[0],x[1],x[2]) for x in wn_bin])
+    
+        else: # For backward compatibility
+            with h5py.File("%s/%s.hdf5"%(self.DB_DIR,"nu"), "r") as dnu:
+                self.nu = np.array(dnu["results"])
             
         self.xsec = {}
+        
         
         # for interpolating the cross section
         # self.x = self.user_input["Xsec"]["Molecule"]["T_Grid"]
@@ -158,16 +169,17 @@ class Cross_Section_Loader():
         savename = savename or "%s_%s.npy"%(molecule,hash)
         filepath = os.path.join(savepath,savename)
         
+        
         if self.reuse and os.path.isfile(filepath):
             
             self.nu,self.xsec[molecule] = np.load(filepath,allow_pickle=True) #self.nu doesn't need to be loaded again
             if VERBOSE:
                 print("%s Cross Section Loaded"%molecule)
         else:
-            try: # need to change this in the future when not loading from HITRAN sources
+            if molecule not in ["O","H"] and molecule not in self.user_input["Prototype"]["Bio_Molecule_List"]: # need to change this in the future when not loading from HITRAN sources
                 print(molecule)
                 self.xsec[molecule] = self.load_HITRAN_single(molecule)
-            except: # This is a temporary solution to add isoprene
+            else: # This is a temporary solution to add isoprene
                 xsec = self.load_PNNL(molecule)
                 wave = len(self.nu)
                 layer = len(self.normalized_pressure)
@@ -183,6 +195,7 @@ class Cross_Section_Loader():
             if VERBOSE:
                 print("%s Cross Section Saved"%molecule)
    
+   
     @opt.timeit
     def load_HITRAN_single(self,molecule):
         """
@@ -191,18 +204,64 @@ class Cross_Section_Loader():
         This will work when only retrieving on mixing ratio.
         Don't even need to interpolate if matched temperature and pressure
         will see how long the interpolation takes, then judge.
-        
-        #xsec = h5py.File("%s/%s.hdf5"%(self.DB_DIR_new,molecule), "r")
         """
-        with h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r") as xsec:
-            return self.grid_interpolate(np.array(xsec["results"])) # 24, 9, 12000 grid 
         
+        if "New" in self.DB_DIR:
+            
+            # replace this with dynamic grid detector
+            T_Grid = np.concatenate([np.arange(100,300,50),
+                             np.arange(300,1000,100),
+                             np.arange(1000,3200,200)
+                             ])
+
+            P_Grid = 10.**np.arange(-10,3)
+            
+            NP = np.array(self.user_input["Prototype"]["Normalized_Pressure"])/101300
+            NT = np.array(self.user_input["Prototype"]["Normalized_Temperature"])
+            
+            
+            # findind the boundary based on initial temperature pressure guess
+            # this can be problematic for retrieval when temperature goes beyond bound. 
+            # need a way to append to xsec grid in memory or ... simply be less restricting with bounds?
+            Tmin, Tmax, Pmin, Pmax = np.min(NT),np.max(NT),np.min(NP),np.max(NP)
+            
+            # might want to change the index to reflect actual temperature range
+            # since finer grids will make range smaller as well
+            TL = np.argmin(T_Grid < Tmin) - 1
+            TR = np.argmax(T_Grid > Tmax) + 1
+            PL = np.argmin(P_Grid < Pmin) - 1
+            PR = np.argmax(P_Grid > Pmax) + 1
+            
+            T_Grid = T_Grid[TL:TR]  # need to handle index error here
+            P_Grid = P_Grid[PL:PR][::-1] # the old grid read high pressure first
+            
+            self.user_input["Xsec"]["Molecule"]["T_Grid"] = T_Grid
+            self.user_input["Xsec"]["Molecule"]["P_Grid"] = P_Grid
+            
+            
+            xsec = np.zeros((len(P_Grid),len(T_Grid),len(self.nu)))
+            for i,P in enumerate(P_Grid):
+                for j,T in enumerate(T_Grid):
+                    filename = os.path.join(self.DB_DIR,molecule,"%s_T%s_P%s.hdf5"%(molecule,T,int(np.log10(P))))
+                 
+                    with h5py.File(filename, "r") as f:
+                        xsec[i][j] = np.array(f["xsec"])
+                        
+            return self.grid_interpolate(xsec)
+
+        else:
+            
+
+            with h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r") as xsec:
+                return self.grid_interpolate(np.array(xsec["results"])) # 24, 9, 12000 grid             
+            
+            
     def load_HITRAN_raw_grid(self,molecule):
         
         with h5py.File("%s/%s.hdf5"%(self.DB_DIR,molecule), "r") as xsec:
             return np.array(xsec["results"]) # 24, 9, 12000 grid 
         
-        
+    
 
     def load_Exomol(self, molecule):
         
@@ -279,6 +338,7 @@ class Cross_Section_Loader():
         
         if select == "molecule":
             
+            
             T_Grid = np.array(self.user_input["Xsec"]["Molecule"]["T_Grid"],dtype=float)
             P_Grid = np.array(self.user_input["Xsec"]["Molecule"]["P_Grid"],dtype=float)
             
@@ -286,9 +346,18 @@ class Cross_Section_Loader():
             # the [::-1] is because it needs to be strictly ascending
             f = RegularGridInterpolator((np.log10(P_Grid[::-1]),T_Grid, self.nu),xsec_grid[::-1])
         
-            for i,(P_E,T_E) in enumerate(zip(np.log10(self.normalized_pressure),self.normalized_temperature)):
+            if "New" in self.DB_DIR: # new database is using bar for pressure unit instead of Pa
+                normalized_pressure = np.array(self.normalized_pressure)/101300
+            else:
+                normalized_pressure = self.normalized_pressure
+            
+                
+            for i,(P_E,T_E) in enumerate(zip(np.log10(normalized_pressure),self.normalized_temperature)):
                 normalized_xsec[i] = f(np.array([np.ones(wave)*P_E, np.ones(wave)*T_E, self.nu]).T)
-        
+            
+            # need to check if interpolated molecule xsec is within range
+                    
+                    
         elif select == "cia":
             T_Grid = np.array(self.user_input["Xsec"]["CIA"]["T_Grid"],dtype=float)
             f = RegularGridInterpolator((T_Grid, nu), xsec_grid,

@@ -1,6 +1,19 @@
 """
 list of all hitran molecules and its respective molecule number
 more detail see https://hitran.org/lbl/
+
+
+Molecules not included:
+34 O: data only availabe from 68 - 158 wn
+37 HOBr: data only availabe from 0.155 - 315 wn
+48 C2N2: data only availabe from 200 - 307 wn
+
+Not available via hp.fetch(), other methods possible but not investigated. 
+Not urgent since these molecules have low priority.
+30 SF6: 
+35 ClONO2:
+42 CF4: 
+
 """
 
 
@@ -39,8 +52,8 @@ HITRAN_Match = {"H2O":1,
                 "HO2":33,
                 "O":34,
                 "ClONO2":35, # not available in hapi
-                "NO+":36,
-                "HOBr":37,
+                "NOp":36, # this is NO+
+                "HOBr":37, # also doesn't work
                 "C2H4":38,
                 "CH3OH":39,
                 "CH3Br":40,
