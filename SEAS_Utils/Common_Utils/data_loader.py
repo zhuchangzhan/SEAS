@@ -26,26 +26,6 @@ import SEAS_Utils.Common_Utils.load_cross_section as xsec
 VERBOSE = False
 
 
-def multi_column_file_loader(path,spliter=None,type="float",skip=0):
-    """
-    load data from files that contains multiple columns
-    """
-    
-    with open(path) as data_file:   
-        data = [x.split(spliter) for x in data_file.read().split("\n")[skip:]]
-        if data[-1] == [] or data[-1] == None or data[-1] == "":
-            data = data[:-1]
-        
-        
-        data = [list(x) for x  in zip(*data)]    
-        
-        if type == "float":
-            return np.array(data,dtype=np.float)
-        elif type == "int":
-            return np.array(data,dtype=np.int)
-        elif type == "mixed":
-            return data
-
 @opt.timeit
 def load_Astrophysical_Properties(user_input):
     """
@@ -107,7 +87,10 @@ def load_Atmosphere_Profile(user_input,scenario_file=None):
     return user_input
 
 @opt.timeit
-def load_Absorption_Cross_Section(user_input,reuse=True):
+def load_Absorption_Cross_Section(user_input,
+                                  reuse=True,
+                                  memory=False,
+                                  pre_def_nu=False):
     """
     This will get renamed to load_Cross_Section since it's more general than just loading molecular cross section
     
@@ -115,9 +98,28 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
     need to rework the molecule cross section loading sequence. 
         create a pandas database which contains data availability
     
+    memory:
+        Whether or not to store the cross section grid in memory
+        only used for Retrieval simulations
+        reuse will be override when memory is not empty
+    
+    reuse:
+        Whether or not to regenerate the cross section or use cross section stored in files
+    
+    
+    reuse and memory have overlapping functionalities, may need to rethink how this works.
+    reuse caters to Forward model where we load xsec from file
+    memory loads xsec from memory. 
+    need to find a way to merge this. May break previous codes
+    maybe memory should be loaded by default? even for forward Model?
+    well you don't load if xsec pregenerated.
+    
+    
+    
     """
-    info = xsec.Cross_Section_Loader(user_input,reuse)
-    user_input["Xsec"]["nu"]                = info.nu  
+    
+    info = xsec.Cross_Section_Loader(user_input,reuse,memory,pre_def_nu)
+    user_input["Xsec"]["nu"]                = info.nu  # binning is done by setting this parameter
     
     
     if user_input["Prototype"]["Source"] in ["Photochemistry","CCM","Earth"]:
@@ -133,23 +135,43 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
         
         # Load Absorption cross section
         for molecule in user_input["Prototype"]["Molecule_List"]:
-            info.load_HITRAN(molecule)
-            user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
+            # molecule not in self.user_input["Prototype"]["Bio_Molecule_List"]
+            if molecule == "C5H8": # not in hitran:
+                if not user_input["Xsec"]["Loaded"]:
+                    profile_xsec = info.load_PNNL(molecule)
+                    print("loaded %s from NIST"%molecule)
+                else:
+                    profile_xsec = user_input["Xsec"]["Molecule"][molecule]
+            else:
+                grid_xsec, profile_xsec = info.load_HITRAN(molecule)
+            
+            if memory:
+                user_input["Xsec"]["Grid"][molecule] = grid_xsec
+  
+                
+            
+            user_input["Xsec"]["Molecule"][molecule] = profile_xsec
+                
         
-        # Load Rayleigh Scattering cross section
-        user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
+        # if xsec is already loaded, the skip this step since they do not depend on pressure and temperature, yet...
+        if user_input["Xsec"]["Loaded"] == True:
+            print("Auxiliary xsecs loaded from memory")
+        else:
+            # Load Rayleigh Scattering cross section
+            user_input["Xsec"]["Rayleigh"]["Value"] = info.load_rayleigh_scattering(user_input["Prototype"]["Molecule_List"])
+            
+            # Load Cloud xsec
+            # This should always be loaded after the molecular xsec because it needs nu
+            if user_input["Xsec"]["Cloud"]["type"] == "grey":
+                user_input["Xsec"]["Cloud"]["Value"] = info.load_gray_cloud()
+            elif user_input["Xsec"]["Cloud"]["type"] == "Mie":
+                user_input["Xsec"]["Cloud"]["Value"] = info.load_mie_cloud()
+          
+            # Load Collision Induced Absorption
+            if "H2" in user_input["Prototype"]["Molecule_List"]:
+                user_input["Xsec"]["CIA"]["Enable"] = "True"
+                user_input["Xsec"]["CIA"]["H2-H2"]  = info.load_CIA(molecule="H2-H2")
         
-        # Load Cloud xsec
-        # This should always be loaded after the molecular xsec because it needs nu
-        if user_input["Xsec"]["Cloud"]["type"] == "grey":
-            user_input["Xsec"]["Cloud"]["Value"] = info.load_gray_cloud()
-        elif user_input["Xsec"]["Cloud"]["type"] == "Mie":
-            user_input["Xsec"]["Cloud"]["Value"] = info.load_mie_cloud()
-      
-        # Load Collision Induced Absorption
-        if "H2" in user_input["Prototype"]["Molecule_List"]:
-            user_input["Xsec"]["CIA"]["Enable"] = "True"
-            user_input["Xsec"]["CIA"]["H2-H2"]  = info.load_CIA(molecule="H2-H2")
             
             
     elif user_input["Prototype"]["Source"] == "Boxcar":
@@ -157,16 +179,27 @@ def load_Absorption_Cross_Section(user_input,reuse=True):
         user_input["Data_IO"]["Hash"] = hashlib.sha224(("Boxcar_300_100000").encode()).hexdigest()[:8] # This is temporary
         
         for molecule in user_input["Prototype"]["Molecule_List"]:
-            info.load_HITRAN(molecule)
-            user_input["Xsec"]["Molecule"][molecule] = info.xsec[molecule]
+            
+            if molecule == "C5H8": # not in hitran:
+                if not user_input["Xsec"]["Loaded"]:
+                    profile_xsec = info.load_PNNL(molecule)
+                    user_input["Xsec"]["Grid"][molecule] =  profile_xsec 
+                    print("loaded %s from NIST"%molecule)
+            else:
+                grid_xsec, profile_xsec = info.load_HITRAN(molecule)
+            
+            if memory and user_input["Xsec"]["Loaded"]:
+                user_input["Xsec"]["Grid"][molecule] = grid_xsec
+  
+            user_input["Xsec"]["Molecule"][molecule] = profile_xsec
+            
     else:
         print("Xsec. Method Not Implemented")
+        print("Need to add new instances")
         sys.exit()
-                    
+    
+    user_input["Xsec"]["Loaded"] = True
+    
     return user_input
-
-
-    
-    
 
 

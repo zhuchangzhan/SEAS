@@ -17,6 +17,7 @@ DIR = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(DIR, '../..'))
 
 from SEAS_Utils.Common_Utils.constants import *
+from SEAS_Utils.Common_Utils.data_util import multi_column_file_loader
 import SEAS_Utils.System_Utils.optimization as opt
 import SEAS_Main.Physics.astrophysics as calc
 

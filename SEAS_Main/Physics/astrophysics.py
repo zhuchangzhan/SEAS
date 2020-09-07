@@ -79,9 +79,6 @@ def get_MolWeight(molecules):
         mw[i] = calculate_mw(molecule)
     return mw
         
-    
-    
-
 def calc_MeanMolWeight(molecules, molecular_weight):
     """
     calculate the mean molecular weight
@@ -105,8 +102,6 @@ def calc_EqTemperature(distance):
     Not implemented yet. Will look back when considering non-isothermal atmospheres
     """
     return 0
-
-
 
 def calc_rayleigh(molecule, nu_range):
     """
@@ -206,21 +201,6 @@ def calc_rayleigh(molecule, nu_range):
     
     return rayleigh 
 
-
-def calc_CIA(molecule, nu):
-    """
-    Calculate Collision Induced Opacities
-    """
-    
-    return np.zeros(len(nu))
-
-def calc_cloud(height, nu):
-    """
-    Calculate Cloud Model
-    """
-    
-    return np.zeros(len(nu))
-    
 def calc_cloud_number_density(air_number_density = 1.225e-3, # g/cm^3
                               particle_mixing_ratio = 4.62e-6, #in abs abundance, unitless
                               particle_density = 4.09, # g/cm^3
@@ -242,7 +222,6 @@ def calculate_air_density(P,T,mean_air=28):
     R = 6.022e23
     return P*mean_air/(k*T*R)
         
-    
 def calc_transit_duration_calculation():
     
     G = 6.67e-11
@@ -259,10 +238,59 @@ def calc_transit_duration_calculation():
     
     L_star = L_Sun*0.005
     M = M_Sun*0.2
-    d = np.sqrt(L_star*(1-a)/(16*np.pi*T**4*sigma))
+    r = np.sqrt(L_star*(1-a)/(16*np.pi*T**4*sigma))
     r_star = R_Sun*0.25 
     
-    V = np.sqrt(G*M/d)
+    V = np.sqrt(G*M/r)
     
-    print(2*r_star/V/3600)
+    P = 2*np.pi*r/V
     
+    print(2*r_star/V/3600, P/86400)
+
+def calc_Absolute_Magnitude_from_Apparent_Magnitude(m,d):
+    """
+    m: apparent magnitude
+    d: distance (pc)
+    
+    distance modulus
+    
+    Calculates the absolute magnitude from apparent magnitude
+    """
+    return m + 5 - 5*np.log10(d)
+    
+def calc_Apparent_Magnitude_from_Absolute_Magnitude(M,d):
+    """
+    M: absolute magnitude
+    d: distance (pc)
+    
+    distance modulus
+    """
+    return M - 5 + 5*np.log10(d)
+
+def calc_Apparent_Magnitude_from_Luminosity(L_star):
+    """
+    L_star: luminosity of the star in unit of L_sun
+    """
+    return 4.74-2.5*np.log10(L_star)
+
+
+def calc_Distance_from_Magnitudes(M,m):
+    """
+    m: apparent magnitude
+    M: absolute magnitude
+    """
+    return 10**(m+5-M)/5
+    
+    
+    
+if __name__ == "__main__":
+    
+    
+    calc_transit_duration_calculation()
+    
+
+
+
+
+
+
